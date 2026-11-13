@@ -221,7 +221,7 @@ try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change',veil)
 const packCache = {}, urlCache = {};
 function pack(kind,n){
   const k = kind+n;
-  if (!packCache[k]) packCache[k] = fetch(k+'.jpg').then(r => { if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+  if (!packCache[k]) packCache[k] = fetch(k+'.jpg').then(r => { if(r.ok) return r.arrayBuffer(); return fetch(k+'.txt').then(t => { if(!t.ok) throw new Error(t.status); return t.text(); }).then(s => Uint8Array.from(atob(s.trim()), c => c.charCodeAt(0)).buffer); });
   return packCache[k];
 }
 async function imgURL(it,kind){
