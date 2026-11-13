@@ -5,6 +5,24 @@
 <meta charset="utf-8">
 <title>גלריית עבודות מחברת</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7a64ad">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="עבודות מחברת">
+<meta name="description" content="עבודות מחברת של בית הספר שירת הים, לפי מקצוע, חומש ופרשה, ומחברות שלמות.">
+<style>
+.install{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:14px 18px;border:1px solid var(--line);border-radius:8px;
+  background:color-mix(in srgb,var(--paper-2) 88%,transparent)}
+.install img{width:44px;height:44px;border-radius:10px;flex:none}
+.install div{flex:1 1 220px;min-width:0}
+.install b{display:block}
+.install span{color:var(--ink-soft);font-size:.92rem}
+.install .btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+a.card{text-decoration:none;color:inherit}
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bellefair&family=Assistant:wght@400;600;700&family=Noto+Rashi+Hebrew:wght@500&display=swap">
@@ -170,6 +188,7 @@ footer{color:var(--ink-soft);font-size:.88rem;display:flex;flex-wrap:wrap;gap:6p
         <button class="btn" id="lb-next" type="button">הבאה ←</button>
       </div>
       <p class="muted" id="lb-pos"></p>
+      <a class="chip" id="lb-nb" href="#" hidden></a>
     </aside>
   </div>
   <button class="lb-close" id="lb-close" type="button" aria-label="סגירה">×</button>
@@ -251,7 +270,13 @@ function where(it){
 const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* routing: #torah  #torah-b2  #torah-b2-p5  #math-g3  (indices into the sorted lists, ASCII-only hashes) */
+const NB = G.notebooks || [];
+const nbById = {}; NB.forEach(n => nbById[n.id] = n);
+const nbPages = id => G.items.filter(i => i.n === id).sort((a,b) => a.pg - b.pg);
 function parse(){
+  const nbm = location.hash.match(/^#nb-([a-z0-9]+)$/);
+  if (nbm && nbById[nbm[1]]) return {view:'nb', id:nbm[1]};
+  if (location.hash === '#notebooks') return {view:'nblist'};
   const m = location.hash.slice(1).match(/^([a-z]+)(?:-b(\d+))?(?:-p(\d+))?(?:-g(\d+))?$/);
   if (!m || !bySubj[m[1]]) return {view:'home'};
   const n = v => v!=null ? +v : null;
@@ -268,7 +293,62 @@ function render(){
   const q = $('#q').value.trim();
   if (q) return renderSearch(q);
   const r = parse();
+  if (r.view==='nb') return renderNotebook(r.id);
+  if (r.view==='nblist') return renderNotebookList();
   r.view==='home' ? renderHome() : renderSubject(r);
+}
+
+/* install as an app */
+let deferredPrompt = null;
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (parse().view==='home' && !$('#q').value) render(); });
+addEventListener('appinstalled', () => { deferredPrompt = null; render(); });
+function installBox(){
+  if (standalone) return '';
+  const howto = isIOS ? 'בספארי: לוחצים על כפתור השיתוף (ריבוע עם חץ למעלה), ואז "הוספה למסך הבית".'
+    : deferredPrompt ? 'לחיצה אחת, והגלריה תופיע במסך הבית כמו כל אפליקציה.'
+    : 'בכרום בטלפון: תפריט שלוש הנקודות, ואז "התקנת אפליקציה" או "הוספה למסך הבית".';
+  return `<div class="install"><img src="icon-192.png" alt=""><div><b>להוריד כאפליקציה לטלפון</b><span>${howto}</span></div>${deferredPrompt?'<button class="btn" type="button" id="inst">התקנה</button>':''}</div>`;
+}
+document.addEventListener('click', e => {
+  if (e.target.id !== 'inst' || !deferredPrompt) return;
+  deferredPrompt.prompt(); deferredPrompt.userChoice.finally(() => { deferredPrompt = null; render(); });
+});
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+function nbCard(n){
+  const first = nbPages(n.id)[0];
+  const S = G.subjects.find(x=>x.slug===n.slug);
+  const meta = [S && S.name, n.grade ? gradeLabel(n.grade) : '', n.pages + ' עמודים'].filter(Boolean).join(' · ');
+  return `<a class="card nb-card" href="#nb-${n.id}">
+    <div class="ph" style="aspect-ratio:${first?(first.w/first.h).toFixed(3):'1.4'}">${first?`<img data-id="${first.id}" alt="" width="${first.w}" height="${first.h}">`:''}</div>
+    <div class="cap"><b>${esc(n.name)}</b><span>${esc(meta)}</span></div></a>`;
+}
+function renderNotebookList(){
+  current = [];
+  const real = NB.filter(n=>!n.loose), loose = NB.filter(n=>n.loose);
+  app.innerHTML = `<div class="stack">
+    <nav class="crumbs" aria-label="ניווט"><a href="#">כל המקצועות</a><span>›</span><span>מחברות שלמות</span></nav>
+    <div class="subj-head"><h2>מחברות שלמות</h2><p>כל מחברת מצולמת מתחילתה ועד סופה, עמוד אחר עמוד, כפי שנכתבה בכיתה.</p></div>
+    <p class="count-line">${real.length} מחברות</p>
+    <div class="grid">${real.concat(loose).map(nbCard).join('')}</div></div>`;
+  document.title = 'מחברות שלמות · גלריית עבודות מחברת';
+  wireCards();
+}
+function renderNotebook(id){
+  const n = nbById[id];
+  const list = nbPages(id);
+  current = list;
+  const S = G.subjects.find(x=>x.slug===n.slug);
+  const ix = NB.indexOf(n), prev = NB[ix-1], next = NB[ix+1];
+  app.innerHTML = `<div class="stack">
+    <nav class="crumbs" aria-label="ניווט"><a href="#">כל המקצועות</a><span>›</span><a href="#notebooks">מחברות שלמות</a><span>›</span><span>${esc(n.name)}</span></nav>
+    <div class="subj-head"><h2>${esc(n.name)}</h2><p>${[S&&!n.loose?S.name:'', n.grade?gradeLabel(n.grade):'', list.length+' עמודים, לפי סדר המחברת'].filter(Boolean).join(' · ')}</p></div>
+    <div class="grid">${list.map(it => card(it, 'עמוד ' + it.pg)).join('')}</div>
+    <div class="row">${prev?`<a class="chip" href="#nb-${prev.id}">→ ${esc(prev.name)}</a>`:''}${next?`<a class="chip" href="#nb-${next.id}">${esc(next.name)} ←</a>`:''}</div></div>`;
+  document.title = n.name + ' · גלריית עבודות מחברת';
+  wireCards();
 }
 
 function renderHome(){
@@ -283,8 +363,14 @@ function renderHome(){
   }).join('');
   app.innerHTML = `<div class="stack">
     <p class="lede">אוסף עבודות מחברת שצוירו בכיתות בית הספר לאורך השנים. בחרו מקצוע, ובתוכו חומש ופרשה, ספר או כיתה. לכל עבודה מצורף הסבר קצר והמקור שהיא מסכמת.</p>
-    <nav class="subjects" aria-label="מקצועות">${cards}</nav></div>`;
+    ${installBox()}
+    <nav class="subjects" aria-label="מקצועות">${cards}</nav>
+    ${NB.length?`<section class="group"><h3>מחברות שלמות <small>${NB.filter(n=>!n.loose).length}</small></h3>
+      <p class="lede">לדפדף במחברת אחת מתחילתה ועד סופה, כפי שנכתבה בכיתה.</p>
+      <div class="grid">${NB.filter(n=>!n.loose).slice(0,8).map(nbCard).join('')}</div>
+      <div class="row"><a class="chip" href="#notebooks">לכל המחברות ←</a></div></section>`:''}</div>`;
   document.title = 'גלריית עבודות מחברת';
+  wireCards();
 }
 
 function renderSubject(r){
@@ -309,6 +395,9 @@ function renderSubject(r){
     rows += `<div class="row"><span class="lab">${r.s==='torah'?'חומש':'נושא'}</span>${chip('הכול',null,hashFor(r.s,null,null,r.g),book==null)}${books.map((b,ix)=>{const n=pool.filter(i=>i.b===b).length; return n?chip(b,n,hashFor(r.s,ix,null,r.g),book===b):'';}).join('')}</div>`;
   if (book && secs.length > 1)
     rows += `<div class="row"><span class="lab">${r.s==='torah'?'פרשה':'פרק'}</span>${chip('הכול',null,hashFor(r.s,r.b,null,r.g),sec==null)}${secs.map((p,ix)=>chip(p,inBook.filter(i=>i.p===p).length,hashFor(r.s,r.b,ix,r.g),sec===p)).join('')}</div>`;
+  const subjNbs = NB.filter(n => !n.loose && n.slug === r.s);
+  if (subjNbs.length)
+    rows += `<div class="row"><span class="lab">מחברות</span>${subjNbs.map(n=>chip(n.name.replace(/^מחברת\s*/,''),n.pages,'#nb-'+n.id,false)).join('')}</div>`;
 
   const groups = [];
   list.forEach(i => {
@@ -319,7 +408,7 @@ function renderSubject(r){
   });
   const gh = g => [!book && g.b ? bookLabel(r.s,g.b) : '', g.p ? secLabel(r.s,g.p) : ''].filter(Boolean).join(' · ');
   const body = list.length ? groups.map(g => `<section class="group">${gh(g)?`<h3>${esc(gh(g))} <small>${g.items.length}</small></h3>`:''}
-      <div class="grid">${g.items.map(card).join('')}</div></section>`).join('')
+      <div class="grid">${g.items.map(i=>card(i)).join('')}</div></section>`).join('')
     : `<div class="empty-note">אין כאן עבודות בצירוף הזה. נסו לבחור כיתה או נושא אחר.</div>`;
 
   app.innerHTML = `<div class="stack">
@@ -332,8 +421,8 @@ function renderSubject(r){
   wireCards();
 }
 
-function card(it){
-  const sub = it.desc ? it.desc.split(/[.:]/)[0] : where(it);
+function card(it, label){
+  const sub = typeof label === 'string' ? label : it.desc ? it.desc.split(/[.:]/)[0] : where(it);
   return `<button class="card" type="button" data-open="${it.id}">
     <div class="ph" style="aspect-ratio:${(it.w/it.h).toFixed(3)}"><img data-id="${it.id}" alt="${esc(title(it))}" width="${it.w}" height="${it.h}"></div>
     <div class="cap"><b>${esc(title(it))}</b><span>${esc(sub)}</span></div></button>`;
@@ -351,7 +440,7 @@ function renderSearch(q){
   app.innerHTML = `<div class="stack">
     <nav class="crumbs"><a href="#" id="clr">כל המקצועות</a><span>›</span><span>חיפוש</span></nav>
     <p class="count-line">${list.length} תוצאות עבור „${esc(q)}”</p>
-    ${list.length?`<div class="grid">${list.map(card).join('')}</div>`:`<div class="empty-note">לא נמצאו עבודות. נסו מילה אחרת, למשל שם פרשה או חג.</div>`}</div>`;
+    ${list.length?`<div class="grid">${list.map(i=>card(i)).join('')}</div>`:`<div class="empty-note">לא נמצאו עבודות. נסו מילה אחרת, למשל שם פרשה או חג.</div>`}</div>`;
   $('#clr').addEventListener('click',()=>{ $('#q').value=''; render(); });
   wireCards();
 }
@@ -370,6 +459,9 @@ function showLB(){
   $('#lb-desc').className = it.desc ? '' : 'muted';
   $('#lb-ref').textContent = it.ref; $('#lb-ref').hidden = !it.ref;
   $('#lb-grade').textContent = gradeLabel(it.g); $('#lb-grade').hidden = !it.g;
+  const nb = nbById[it.n];
+  $('#lb-nb').hidden = !nb || nb.loose;
+  if (nb) { $('#lb-nb').href = '#nb-' + nb.id; $('#lb-nb').textContent = nb.name + ' · עמוד ' + it.pg + ' מתוך ' + nb.pages + ' ←'; }
   $('#lb-pos').textContent = (lbIx+1)+' מתוך '+current.length;
   $('#lb-prev').disabled = lbIx<=0; $('#lb-next').disabled = lbIx>=current.length-1;
   [current[lbIx+1],current[lbIx-1]].forEach(n=>n&&imgURL(n,'f').catch(()=>{}));
@@ -387,7 +479,7 @@ let sx=null; lb.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passiv
 lb.addEventListener('touchend',e=>{ if(sx==null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>60) (dx<0?$('#lb-prev'):$('#lb-next')).click(); sx=null; });
 
 let st; $('#q').addEventListener('input',()=>{ clearTimeout(st); st=setTimeout(render,180); });
-addEventListener('hashchange',()=>{ $('#q').value=''; render(); scrollTo({top:0}); });
+addEventListener('hashchange',()=>{ if (lb.open) lb.close(); $('#q').value=''; render(); scrollTo({top:0}); });
 render();
 })();
 </script>

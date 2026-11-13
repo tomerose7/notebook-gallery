@@ -1,0 +1,17 @@
+{
+  "name": "גלריית עבודות מחברת",
+  "short_name": "עבודות מחברת",
+  "description": "עבודות מחברת של בית הספר שירת הים, לפי מקצוע, חומש ופרשה, ומחברות שלמות.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f4f9",
+  "theme_color": "#7a64ad",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
