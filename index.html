@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="utf-8">
+<title>גלריית עבודות מחברת</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bellefair&family=Assistant:wght@400;600;700&family=Noto+Rashi+Hebrew:wght@500&display=swap">
+<style>
+/* Layout: a sheet of wet-on-wet veil painting behind a calm reading column; subjects are soft color washes, works sit like pages laid on the table. */
+:root{
+  --paper:#f6f4f9; --paper-2:#fffdfb;
+  --ink:#3a3352; --ink-soft:#6c6585; --line:#ddd6e8;
+  --accent:#7a64ad; --accent-ink:#ffffff;
+  --rose:#f1c6c2; --sky:#bcd6ec; --sage:#cde0c0; --gold:#f3dca2; --lilac:#d8c9ea; --peach:#f6d2b4; --mint:#c4e3dc;
+  --wash-alpha:.55; --wash-card:1;
+  --shadow:0 1px 2px rgba(58,51,82,.08),0 8px 24px -12px rgba(58,51,82,.25);
+  --f-display:"Bellefair","Frank Ruhl Libre","David",serif;
+  --f-body:"Assistant","Segoe UI","Arial Hebrew",Arial,sans-serif;
+  --f-rashi:"Noto Rashi Hebrew","Assistant",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552;
+  --accent:#b9a6ee; --accent-ink:#1d1a2a; --wash-alpha:.22; --wash-card:.55;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.7); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552;
+  --accent:#b9a6ee; --accent-ink:#1d1a2a; --wash-alpha:.22; --wash-card:.55;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.7); color-scheme:dark}
+
+*{box-sizing:border-box}
+html{direction:rtl}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-height:100vh}
+#veil{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:var(--wash-alpha)}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding-block:28px 64px;display:flex;flex-direction:column;gap:28px}
+.stack{display:flex;flex-direction:column;gap:22px}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 28px}
+.brand{display:flex;flex-direction:column;gap:2px;text-decoration:none;min-width:0}
+.brand small{font-family:var(--f-rashi);font-size:.92rem;color:var(--ink-soft);letter-spacing:.02em}
+.brand h1{font-family:var(--f-display);font-weight:400;font-size:clamp(2.1rem,5vw,3.3rem);line-height:1.05;margin:0;text-wrap:balance}
+.search{flex:1 1 280px;max-width:420px;position:relative}
+.search input{width:100%;padding:12px 44px 12px 16px;border-radius:999px;border:1px solid var(--line);
+  background:color-mix(in srgb,var(--paper-2) 85%,transparent);color:var(--ink);font:inherit;font-size:1rem;backdrop-filter:blur(6px)}
+.search input::placeholder{color:var(--ink-soft)}
+.search svg{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--ink-soft);fill:none}
+.lede{max-width:62ch;margin:0;color:var(--ink-soft);font-size:1.05rem}
+
+.subjects{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.subj{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-height:150px;padding:20px 22px;
+  text-decoration:none;border-radius:4px;isolation:isolate;transition:transform .35s ease}
+.subj .wash{position:absolute;inset:-6px;z-index:-1;filter:url(#bleed);border-radius:10px;opacity:var(--wash-card);
+  background:radial-gradient(120% 90% at 85% 15%,var(--c1) 0%,transparent 62%),
+             radial-gradient(110% 100% at 10% 95%,var(--c2) 0%,transparent 65%),
+             color-mix(in srgb,var(--c1) 45%,var(--paper-2))}
+.subj:hover{transform:translateY(-3px) rotate(-.4deg)}
+.subj h2{font-family:var(--f-display);font-weight:400;font-size:2rem;line-height:1.1;margin:0}
+.subj p{margin:0;font-size:.95rem;color:var(--ink-soft)}
+.subj .count{position:absolute;top:16px;left:18px;font-size:.85rem;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.95rem;color:var(--ink-soft)}
+.crumbs a{text-decoration:none;border-bottom:1px solid transparent}
+.crumbs a:hover{border-color:currentColor}
+.subj-head{display:flex;flex-direction:column;gap:6px}
+.subj-head h2{font-family:var(--f-display);font-weight:400;font-size:clamp(2.4rem,6vw,3.6rem);line-height:1;margin:0}
+.subj-head p{margin:0;color:var(--ink-soft)}
+.filters{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row .lab{font-family:var(--f-rashi);font-size:.85rem;color:var(--ink-soft);margin-inline-end:4px;min-width:3.5em}
+.chip{border:1px solid var(--line);background:color-mix(in srgb,var(--paper-2) 80%,transparent);padding:6px 14px;border-radius:999px;
+  cursor:pointer;font-size:.95rem;line-height:1.3;display:inline-flex;gap:6px;align-items:baseline;text-decoration:none}
+.chip .n{font-size:.78rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.chip[aria-current="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip[aria-current="true"] .n{color:inherit;opacity:.8}
+.chip:hover{border-color:var(--accent)}
+
+.groups{display:flex;flex-direction:column;gap:40px}
+.group{display:flex;flex-direction:column;gap:14px}
+.group h3{font-family:var(--f-display);font-weight:400;font-size:1.7rem;margin:0;display:flex;gap:10px;align-items:baseline}
+.group h3 small{font-family:var(--f-body);font-size:.85rem;color:var(--ink-soft)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px 18px;align-items:start}
+.card{display:flex;flex-direction:column;gap:8px;cursor:pointer;background:none;border:0;padding:0;text-align:inherit;min-width:0}
+.card .ph{position:relative;width:100%;max-width:100%;background:color-mix(in srgb,var(--paper-2) 70%,var(--lilac));
+  box-shadow:var(--shadow);border-radius:2px;overflow:hidden;transition:transform .3s ease}
+.card:nth-child(3n) .ph{transform:rotate(.5deg)}
+.card:nth-child(3n+1) .ph{transform:rotate(-.4deg)}
+.card:hover .ph{transform:rotate(0) translateY(-3px)}
+.card img{display:block;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
+.card img.on{opacity:1}
+.card .cap{font-size:.93rem;line-height:1.35;display:flex;flex-direction:column;gap:2px;min-width:0}
+.card .cap b{font-weight:600}
+.card .cap span{color:var(--ink-soft);font-size:.83rem}
+.empty-note{padding:28px;border:1px dashed var(--line);border-radius:6px;color:var(--ink-soft);text-align:center}
+.count-line{color:var(--ink-soft);font-size:.95rem;margin:0}
+
+dialog.lb{border:0;padding:0;max-width:none;max-height:none;width:100%;height:100%;background:transparent;color:var(--ink)}
+dialog.lb::backdrop{background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(6px)}
+.lb-in{height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,360px);gap:24px;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.lb-img{min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+.lb-img img{max-width:100%;max-height:calc(100vh - 48px);box-shadow:var(--shadow);background:var(--paper-2)}
+.lb-side{min-width:0;display:flex;flex-direction:column;gap:14px;align-self:center;background:color-mix(in srgb,var(--paper-2) 92%,transparent);
+  padding:22px;border-radius:6px;box-shadow:var(--shadow);max-height:calc(100vh - 48px);overflow:auto}
+.lb-side .where{font-family:var(--f-rashi);font-size:.88rem;color:var(--ink-soft)}
+.lb-side h3{font-family:var(--f-display);font-weight:400;font-size:1.9rem;line-height:1.15;margin:0;text-wrap:balance}
+.lb-side p{margin:0}
+.lb-side .ref{border-inline-start:3px solid var(--lilac);padding-inline-start:12px;font-size:1rem}
+.lb-side .muted{color:var(--ink-soft);font-size:.92rem}
+.lb-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.btn{border:1px solid var(--line);background:var(--paper);padding:8px 14px;border-radius:999px;cursor:pointer;font-size:.95rem}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.lb-close{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));
+  width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--paper-2);cursor:pointer;font-size:1.4rem;line-height:1}
+@media (max-width:760px){
+  .lb-in{grid-template-columns:1fr;overflow:auto;align-content:start;padding-top:64px}
+  .lb-img img{max-height:62vh}
+  .lb-side{max-height:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 12px}
+}
+footer{color:var(--ink-soft);font-size:.88rem;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between;border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="bleed" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency=".018" numOctaves="3" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="22" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+<canvas id="veil" aria-hidden="true"></canvas>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#">
+      <small>בית ספר שירת הים · מאגר פדגוגי</small>
+      <h1>גלריית עבודות מחברת</h1>
+    </a>
+    <label class="search" for="q">
+      <svg viewBox="0 0 24 24" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <input id="q" type="search" placeholder="חיפוש: פרשה, פסוק, נושא…" autocomplete="off" aria-label="חיפוש בגלריה">
+    </label>
+  </header>
+  <main id="app"></main>
+  <footer>
+    <span>עבודות המחברת צוירו בידי תלמידי בית הספר בשיעורי התקופה.</span>
+    <span id="stats"></span>
+  </footer>
+</div>
+
+<dialog class="lb" id="lb" aria-label="תצוגת עבודה">
+  <div class="lb-in">
+    <div class="lb-img"><img id="lb-img" alt=""></div>
+    <aside class="lb-side">
+      <div class="where" id="lb-where"></div>
+      <h3 id="lb-title"></h3>
+      <p id="lb-desc"></p>
+      <p class="ref" id="lb-ref"></p>
+      <p class="muted" id="lb-grade"></p>
+      <div class="lb-nav">
+        <button class="btn" id="lb-prev" type="button">→ הקודמת</button>
+        <button class="btn" id="lb-next" type="button">הבאה ←</button>
+      </div>
+      <p class="muted" id="lb-pos"></p>
+    </aside>
+  </div>
+  <button class="lb-close" id="lb-close" type="button" aria-label="סגירה">×</button>
+</dialog>
+
+<script src="data.js"></script>
+<script>
+(function(){
+const G = window.GALLERY || {subjects:[],items:[]};
+const HUES = {torah:['--sky','--lilac'],navi:['--lilac','--rose'],moadim:['--gold','--peach'],mishna:['--peach','--rose'],
+  math:['--rose','--gold'],lang:['--sage','--sky'],handasa:['--mint','--lilac'],madaim:['--sage','--gold'],geo:['--sky','--sage'],
+  crafts:['--peach','--sage'],eretz:['--gold','--sage'],other:['--lilac','--sky']};
+const GR = 'אבגדהוזח'.split('');
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const bySubj = {};
+G.subjects.forEach(s => bySubj[s.slug] = G.items.filter(i => i.s === s.slug));
+const itemById = {}; G.items.forEach(i => itemById[i.id] = i);
+$('#stats').textContent = G.items.length + ' עבודות בגלריה';
+
+/* watercolor veil background */
+function veil(){
+  const c = $('#veil'), dpr = Math.min(devicePixelRatio||1, 2), w = innerWidth, h = innerHeight;
+  c.width = w*dpr; c.height = h*dpr;
+  const x = c.getContext('2d'); x.scale(dpr,dpr);
+  const cs = getComputedStyle(document.documentElement);
+  const cols = ['--sky','--rose','--gold','--lilac','--sage','--peach'].map(v => cs.getPropertyValue(v).trim());
+  let seed = 11; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647;
+  x.clearRect(0,0,w,h);
+  for (let i=0;i<26;i++){
+    const col = cols[i % cols.length];
+    const cx = rnd()*w, cy = rnd()*h*1.1 - h*.05, r = (0.18 + rnd()*0.32) * Math.max(w,h);
+    x.save(); x.globalAlpha = .16 + rnd()*.16; x.globalCompositeOperation = 'multiply';
+    x.beginPath();
+    for (let k=0;k<=28;k++){
+      const a = k/28*Math.PI*2, rr = r*(0.62 + 0.38*Math.sin(a*3 + i)*rnd() + 0.18*rnd());
+      const px = cx + Math.cos(a)*rr, py = cy + Math.sin(a)*rr*0.7;
+      k ? x.lineTo(px,py) : x.moveTo(px,py);
+    }
+    const g = x.createRadialGradient(cx,cy,r*.05,cx,cy,r);
+    g.addColorStop(0,col); g.addColorStop(.7,col); g.addColorStop(1,'rgba(255,255,255,0)');
+    x.fillStyle = g; x.filter = 'blur(28px)'; x.fill(); x.restore();
+  }
+}
+veil(); let vt; addEventListener('resize',()=>{clearTimeout(vt);vt=setTimeout(veil,200)});
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change',veil); } catch(e){}
+
+/* image packs: thumbnails and full images are concatenated into a few files; slice by offset */
+const packCache = {}, urlCache = {};
+function pack(kind,n){
+  const k = kind+n;
+  if (!packCache[k]) packCache[k] = fetch(k+'.jpg').then(r => { if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+  return packCache[k];
+}
+async function imgURL(it,kind){
+  const k = kind+it.id;
+  if (urlCache[k]) return urlCache[k];
+  const [n,off,len] = it[kind];
+  const buf = await pack(kind,n);
+  return urlCache[k] = URL.createObjectURL(new Blob([buf.slice(off,off+len)],{type:'image/jpeg'}));
+}
+function loadThumb(img){
+  const it = itemById[img.dataset.id];
+  imgURL(it,'t').then(u => { img.onload = () => img.classList.add('on'); img.src = u; }).catch(()=>{});
+}
+const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return; io.unobserve(e.target); loadThumb(e.target);
+}),{rootMargin:'600px'}) : null;
+
+/* labels */
+const bookLabel = (s,b) => s==='torah' ? 'חומש '+b : b;
+const secLabel = (s,p) => s==='torah' ? 'פרשת '+p : p;
+const gradeLabel = g => g ? "כיתה " + g + "'" : '';
+function title(it){ return it.title || (it.p ? secLabel(it.s,it.p) : it.b ? bookLabel(it.s,it.b) : 'עבודת מחברת'); }
+function where(it){
+  const s = G.subjects.find(x=>x.slug===it.s);
+  return [s && s.name, it.b && bookLabel(it.s,it.b), it.p && secLabel(it.s,it.p), gradeLabel(it.g)].filter(Boolean).join(' · ');
+}
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* routing: #torah  #torah-b2  #torah-b2-p5  #math-g3  (indices into the sorted lists, ASCII-only hashes) */
+function parse(){
+  const m = location.hash.slice(1).match(/^([a-z]+)(?:-b(\d+))?(?:-p(\d+))?(?:-g(\d+))?$/);
+  if (!m || !bySubj[m[1]]) return {view:'home'};
+  const n = v => v!=null ? +v : null;
+  return {view:'subj', s:m[1], b:n(m[2]), p:n(m[3]), g:n(m[4])};
+}
+const hashFor = (s,b,p,g) => '#'+s+(b!=null?'-b'+b:'')+(p!=null?'-p'+p:'')+(g!=null?'-g'+g:'');
+function uniqOrdered(vals, order){
+  const o = order || [];
+  return [...new Set(vals.filter(Boolean))].sort((a,b)=>{ const ia=o.indexOf(a), ib=o.indexOf(b); return (ia<0?999:ia)-(ib<0?999:ib) || a.localeCompare(b,'he'); });
+}
+
+let current = [];
+function render(){
+  const q = $('#q').value.trim();
+  if (q) return renderSearch(q);
+  const r = parse();
+  r.view==='home' ? renderHome() : renderSubject(r);
+}
+
+function renderHome(){
+  current = [];
+  const cards = G.subjects.map(s => {
+    const n = bySubj[s.slug].length;
+    if (!n) return '';
+    const [c1,c2] = HUES[s.slug] || ['--lilac','--sky'];
+    return `<a class="subj" href="#${s.slug}" style="--c1:var(${c1});--c2:var(${c2})">
+      <span class="wash"></span><span class="count">${n} עבודות</span>
+      <h2>${esc(s.name)}</h2><p>${esc(s.blurb)}</p></a>`;
+  }).join('');
+  app.innerHTML = `<div class="stack">
+    <p class="lede">אוסף עבודות מחברת שצוירו בכיתות בית הספר לאורך השנים. בחרו מקצוע, ובתוכו חומש ופרשה, ספר או כיתה. לכל עבודה מצורף הסבר קצר והמקור שהיא מסכמת.</p>
+    <nav class="subjects" aria-label="מקצועות">${cards}</nav></div>`;
+  document.title = 'גלריית עבודות מחברת';
+}
+
+function renderSubject(r){
+  const S = G.subjects.find(x=>x.slug===r.s);
+  const all = bySubj[r.s];
+  const grades = uniqOrdered(all.map(i=>i.g), GR);
+  const grade = r.g!=null ? grades[r.g] : null;
+  const pool = grade ? all.filter(i=>i.g===grade) : all;
+  const books = uniqOrdered(all.map(i=>i.b), (G.bookOrder||{})[r.s]);
+  const book = r.b!=null ? books[r.b] : null;
+  const inBook = pool.filter(i => !book || i.b===book);
+  const secs = uniqOrdered(inBook.map(i=>i.p), book ? (G.secOrder||{})[book] : null);
+  const sec = r.p!=null ? secs[r.p] : null;
+  const list = inBook.filter(i => !sec || i.p===sec);
+  current = list;
+
+  const chip = (label,n,href,on) => `<a class="chip" href="${href}" aria-current="${on}">${esc(label)}${n!=null?` <span class="n">${n}</span>`:''}</a>`;
+  let rows = '';
+  if (grades.length > 1)
+    rows += `<div class="row"><span class="lab">כיתה</span>${chip('כל הכיתות',null,hashFor(r.s,r.b,null,null),grade==null)}${grades.map((g,ix)=>chip(gradeLabel(g),all.filter(i=>i.g===g).length,hashFor(r.s,null,null,ix),grade===g)).join('')}</div>`;
+  if (books.length > 1)
+    rows += `<div class="row"><span class="lab">${r.s==='torah'?'חומש':'נושא'}</span>${chip('הכול',null,hashFor(r.s,null,null,r.g),book==null)}${books.map((b,ix)=>{const n=pool.filter(i=>i.b===b).length; return n?chip(b,n,hashFor(r.s,ix,null,r.g),book===b):'';}).join('')}</div>`;
+  if (book && secs.length > 1)
+    rows += `<div class="row"><span class="lab">${r.s==='torah'?'פרשה':'פרק'}</span>${chip('הכול',null,hashFor(r.s,r.b,null,r.g),sec==null)}${secs.map((p,ix)=>chip(p,inBook.filter(i=>i.p===p).length,hashFor(r.s,r.b,ix,r.g),sec===p)).join('')}</div>`;
+
+  const groups = [];
+  list.forEach(i => {
+    const key = (i.b||'') + '|' + (i.p||'');
+    let g = groups[groups.length-1];
+    if (!g || g.key !== key) groups.push(g = {key, b:i.b, p:i.p, items:[]});
+    g.items.push(i);
+  });
+  const gh = g => [!book && g.b ? bookLabel(r.s,g.b) : '', g.p ? secLabel(r.s,g.p) : ''].filter(Boolean).join(' · ');
+  const body = list.length ? groups.map(g => `<section class="group">${gh(g)?`<h3>${esc(gh(g))} <small>${g.items.length}</small></h3>`:''}
+      <div class="grid">${g.items.map(card).join('')}</div></section>`).join('')
+    : `<div class="empty-note">אין כאן עבודות בצירוף הזה. נסו לבחור כיתה או נושא אחר.</div>`;
+
+  app.innerHTML = `<div class="stack">
+    <nav class="crumbs" aria-label="ניווט"><a href="#">כל המקצועות</a><span>›</span><a href="#${r.s}">${esc(S.name)}</a>${book?`<span>›</span><span>${esc(bookLabel(r.s,book))}</span>`:''}${sec?`<span>›</span><span>${esc(secLabel(r.s,sec))}</span>`:''}</nav>
+    <div class="subj-head"><h2>${esc(S.name)}</h2><p>${esc(S.blurb)}</p></div>
+    ${rows?`<div class="filters">${rows}</div>`:''}
+    <p class="count-line">${list.length} עבודות</p>
+    <div class="groups">${body}</div></div>`;
+  document.title = S.name + ' · גלריית עבודות מחברת';
+  wireCards();
+}
+
+function card(it){
+  const sub = it.desc ? it.desc.split(/[.:]/)[0] : where(it);
+  return `<button class="card" type="button" data-open="${it.id}">
+    <div class="ph" style="aspect-ratio:${(it.w/it.h).toFixed(3)}"><img data-id="${it.id}" alt="${esc(title(it))}" width="${it.w}" height="${it.h}"></div>
+    <div class="cap"><b>${esc(title(it))}</b><span>${esc(sub)}</span></div></button>`;
+}
+function wireCards(){
+  app.querySelectorAll('img[data-id]').forEach(img => io ? io.observe(img) : loadThumb(img));
+  app.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click',()=>openLB(b.dataset.open)));
+}
+
+const norm = t => (t||'').replace(/[֑-ׇ"'״׳]/g,'').toLowerCase();
+function renderSearch(q){
+  const words = norm(q).split(/\s+/).filter(Boolean);
+  const list = G.items.filter(i => { const hay = norm([title(i),i.desc,i.ref,where(i)].join(' ')); return words.every(w=>hay.includes(w)); });
+  current = list;
+  app.innerHTML = `<div class="stack">
+    <nav class="crumbs"><a href="#" id="clr">כל המקצועות</a><span>›</span><span>חיפוש</span></nav>
+    <p class="count-line">${list.length} תוצאות עבור „${esc(q)}”</p>
+    ${list.length?`<div class="grid">${list.map(card).join('')}</div>`:`<div class="empty-note">לא נמצאו עבודות. נסו מילה אחרת, למשל שם פרשה או חג.</div>`}</div>`;
+  $('#clr').addEventListener('click',()=>{ $('#q').value=''; render(); });
+  wireCards();
+}
+
+/* lightbox */
+const lb = $('#lb'); let lbIx = -1;
+function openLB(id){ lbIx = current.findIndex(i=>i.id===id); showLB(); if (!lb.open) lb.showModal(); }
+function showLB(){
+  const it = current[lbIx]; if (!it) return;
+  const im = $('#lb-img'); im.removeAttribute('src'); im.alt = title(it);
+  imgURL(it,'t').then(u=>{ if(current[lbIx]===it && !im.getAttribute('src')) im.src=u; }).catch(()=>{});
+  imgURL(it,'f').then(u=>{ if(current[lbIx]===it) im.src=u; }).catch(()=>{});
+  $('#lb-where').textContent = where(it);
+  $('#lb-title').textContent = title(it);
+  $('#lb-desc').textContent = it.desc || 'תיאור העבודה יתווסף בקרוב.';
+  $('#lb-desc').className = it.desc ? '' : 'muted';
+  $('#lb-ref').textContent = it.ref; $('#lb-ref').hidden = !it.ref;
+  $('#lb-grade').textContent = gradeLabel(it.g); $('#lb-grade').hidden = !it.g;
+  $('#lb-pos').textContent = (lbIx+1)+' מתוך '+current.length;
+  $('#lb-prev').disabled = lbIx<=0; $('#lb-next').disabled = lbIx>=current.length-1;
+  [current[lbIx+1],current[lbIx-1]].forEach(n=>n&&imgURL(n,'f').catch(()=>{}));
+}
+$('#lb-prev').onclick = ()=>{ if(lbIx>0){lbIx--;showLB();} };
+$('#lb-next').onclick = ()=>{ if(lbIx<current.length-1){lbIx++;showLB();} };
+$('#lb-close').onclick = ()=>lb.close();
+lb.addEventListener('click',e=>{ if(e.target===lb || e.target.classList.contains('lb-in') || e.target.classList.contains('lb-img')) lb.close(); });
+document.addEventListener('keydown',e=>{
+  if(!lb.open) return;
+  if(e.key==='ArrowLeft') $('#lb-next').click();
+  if(e.key==='ArrowRight') $('#lb-prev').click();
+});
+let sx=null; lb.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+lb.addEventListener('touchend',e=>{ if(sx==null) return; const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>60) (dx<0?$('#lb-prev'):$('#lb-next')).click(); sx=null; });
+
+let st; $('#q').addEventListener('input',()=>{ clearTimeout(st); st=setTimeout(render,180); });
+addEventListener('hashchange',()=>{ $('#q').value=''; render(); scrollTo({top:0}); });
+render();
+})();
+</script>
+
+</body>
+</html>
