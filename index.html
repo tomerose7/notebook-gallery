@@ -21,7 +21,7 @@
 .install b{display:block}
 a.install{text-decoration:none;color:inherit}
 .install span{color:var(--ink-soft);font-size:.92rem}
-.install .btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.install .btn{color:var(--accent-ink);font-weight:600;padding:8px 16px}
 a.card{text-decoration:none;color:inherit}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,7 +34,7 @@ a.card{text-decoration:none;color:inherit}
   --ink:#3a3352; --ink-soft:#6c6585; --line:#ddd6e8;
   --accent:#7a64ad; --accent-ink:#ffffff;
   --rose:#f1c6c2; --sky:#bcd6ec; --sage:#cde0c0; --gold:#f3dca2; --lilac:#d8c9ea; --peach:#f6d2b4; --mint:#c4e3dc;
-  --wash-alpha:.55; --wash-card:1;
+  --wash-alpha:.55; --wash-card:1; --veil-alpha:.85;
   --shadow:0 1px 2px rgba(58,51,82,.08),0 8px 24px -12px rgba(58,51,82,.25);
   --f-display:"Bellefair","Frank Ruhl Libre","David",serif;
   --f-body:"Assistant","Segoe UI","Arial Hebrew",Arial,sans-serif;
@@ -42,18 +42,18 @@ a.card{text-decoration:none;color:inherit}
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552;
-  --accent:#b9a6ee; --accent-ink:#1d1a2a; --wash-alpha:.22; --wash-card:.55;
+  --accent:#b9a6ee; --accent-ink:#1d1a2a; --wash-alpha:.22; --wash-card:.55; --veil-alpha:.12;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.7); color-scheme:dark}}
 :root[data-theme="dark"]{
   --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552;
-  --accent:#b9a6ee; --accent-ink:#1d1a2a; --wash-alpha:.22; --wash-card:.55;
+  --accent:#b9a6ee; --accent-ink:#1d1a2a; --wash-alpha:.22; --wash-card:.55; --veil-alpha:.12;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -14px rgba(0,0,0,.7); color-scheme:dark}
 
 *{box-sizing:border-box}
 html{direction:rtl}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));min-height:100vh}
-#veil{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:var(--wash-alpha)}
+#veil{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:var(--veil-alpha);background:url(veil.jpg) center/cover}
 .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding-block:28px 64px;display:flex;flex-direction:column;gap:28px}
 .stack{display:flex;flex-direction:column;gap:22px}
 a{color:inherit}
@@ -71,13 +71,26 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .search svg{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:var(--ink-soft);fill:none}
 .lede{max-width:62ch;margin:0;color:var(--ink-soft);font-size:1.05rem}
 
-.subjects{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px}
+.subjects{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:30px 34px;padding:6px 10px}
 .subj{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;min-height:150px;padding:20px 22px;
   text-decoration:none;border-radius:4px;isolation:isolate;transition:transform .35s ease}
-.subj .wash{position:absolute;inset:-6px;z-index:-1;filter:url(#bleed);border-radius:10px;opacity:var(--wash-card);
-  background:radial-gradient(120% 90% at 85% 15%,var(--c1) 0%,transparent 62%),
-             radial-gradient(110% 100% at 10% 95%,var(--c2) 0%,transparent 65%),
-             color-mix(in srgb,var(--c1) 45%,var(--paper-2))}
+/* soft wet-on-wet washes (wash-1..4.webp, white masks from tools/make_washes.py) tinted per subject; a different wash per card */
+.subj .wash{position:absolute;inset:-18px -24px;z-index:-1;opacity:var(--wash-card);
+  background:linear-gradient(120deg,color-mix(in srgb,var(--c1) 88%,var(--ink) 12%),color-mix(in srgb,var(--c2) 92%,var(--ink) 8%));
+  -webkit-mask:url(wash-1.webp) center/100% 100% no-repeat;mask:url(wash-1.webp) center/100% 100% no-repeat}
+.subj:nth-child(4n+2) .wash{-webkit-mask-image:url(wash-2.webp);mask-image:url(wash-2.webp)}
+.subj:nth-child(4n+3) .wash{-webkit-mask-image:url(wash-3.webp);mask-image:url(wash-3.webp)}
+.subj:nth-child(4n+4) .wash{-webkit-mask-image:url(wash-4.webp);mask-image:url(wash-4.webp)}
+.subj:nth-child(8n+5) .wash,.subj:nth-child(8n+7) .wash{transform:scaleX(-1)}
+/* chips and buttons: the same stroke, small */
+.chip,.btn{position:relative;isolation:isolate;border-color:transparent!important;background:none!important}
+.chip::before,.btn::before{content:"";position:absolute;inset:-3px -7px;z-index:-1;
+  background:color-mix(in srgb,var(--accent) 28%,transparent);
+  -webkit-mask:url(wash-1.webp) center/100% 100% no-repeat;mask:url(wash-1.webp) center/100% 100% no-repeat}
+.chip:nth-child(3n+2)::before,.btn:nth-child(3n+2)::before{-webkit-mask-image:url(wash-2.webp);mask-image:url(wash-2.webp)}
+.chip:nth-child(3n)::before,.btn:nth-child(3n)::before{-webkit-mask-image:url(wash-3.webp);mask-image:url(wash-3.webp)}
+.chip:hover::before,.btn:hover:not(:disabled)::before{background:color-mix(in srgb,var(--accent) 45%,transparent)}
+.chip[aria-current="true"]::before,.install .btn::before{background:var(--accent)}
 .subj:hover{transform:translateY(-3px) rotate(-.4deg)}
 .subj h2{font-family:var(--f-display);font-weight:400;font-size:2rem;line-height:1.1;margin:0}
 .subj p{margin:0;font-size:.95rem;color:var(--ink-soft)}
@@ -90,12 +103,12 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .subj-head h2{font-family:var(--f-display);font-weight:400;font-size:clamp(2.4rem,6vw,3.6rem);line-height:1;margin:0}
 .subj-head p{margin:0;color:var(--ink-soft)}
 .filters{display:flex;flex-direction:column;gap:12px}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center}
 .row .lab{font-family:var(--f-rashi);font-size:.85rem;color:var(--ink-soft);margin-inline-end:4px;min-width:3.5em}
 .chip{border:1px solid var(--line);background:color-mix(in srgb,var(--paper-2) 80%,transparent);padding:6px 14px;border-radius:999px;
   cursor:pointer;font-size:.95rem;line-height:1.3;display:inline-flex;gap:6px;align-items:baseline;text-decoration:none}
 .chip .n{font-size:.78rem;color:var(--ink-soft);font-variant-numeric:tabular-nums}
-.chip[aria-current="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.chip[aria-current="true"]{color:var(--accent-ink);font-weight:600}
 .chip[aria-current="true"] .n{color:inherit;opacity:.8}
 .chip:hover{border-color:var(--accent)}
 
@@ -234,8 +247,7 @@ function veil(){
     x.fillStyle = g; x.filter = 'blur(28px)'; x.fill(); x.restore();
   }
 }
-veil(); let vt; addEventListener('resize',()=>{clearTimeout(vt);vt=setTimeout(veil,200)});
-try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change',veil); } catch(e){}
+// the page background is now a painted veil image (veil.jpg, tools/make_washes.py); the canvas version above is kept as a fallback reference only
 
 /* image packs: thumbnails and full images are concatenated into a few files; slice by offset */
 const packCache = {}, urlCache = {};
