@@ -1,0 +1,52 @@
+# Checks, crops and catalogs teacher uploads waiting in the private repo notebook-gallery-inbox.
+# Started by the upload service after every upload (repository_dispatch), every 3 hours as a safety net, or by hand.
+# Secrets: INBOX_TOKEN (fine-grained token, Contents read/write on both repos), GEMINI_KEY (free-tier key).
+name: process uploads
+on:
+  repository_dispatch:
+    types: [upload]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */3 * * *'
+concurrency:
+  group: uploads
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: pub
+          token: ${{ secrets.INBOX_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          repository: tomerose7/notebook-gallery-inbox
+          path: inbox
+          token: ${{ secrets.INBOX_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet pillow==11.0.0
+      - name: process
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+        run: python pub/process_uploads.py pub inbox
+      - name: publish
+        if: always()
+        run: |
+          git config --global user.name "gallery-bot"
+          git config --global user.email "gallery-bot@users.noreply.github.com"
+          cd pub
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -q -m "uploads: new works"
+            git pull -q --rebase && git push -q
+          fi
+          cd ../inbox
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -q -m "processed"
+            git pull -q --rebase && git push -q
+          fi
