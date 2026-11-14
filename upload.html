@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>העלאת עבודות מחברת</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7a64ad">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bellefair&family=Assistant:wght@400;600;700&display=swap">
+<style>
+:root{
+  --paper:#f6f4f9; --paper-2:#fffdfb; --ink:#3a3352; --ink-soft:#6c6585; --line:#ddd6e8;
+  --accent:#7a64ad; --accent-ink:#fff; --ok:#4d8a5a; --ok-bg:#e3efdc; --bad:#b0564f; --bad-bg:#f6e0dd;
+  --sky:#bcd6ec; --rose:#f1c6c2; --gold:#f3dca2; --lilac:#d8c9ea;
+  --shadow:0 1px 2px rgba(58,51,82,.08),0 8px 24px -12px rgba(58,51,82,.25);
+  --f-display:"Bellefair","Frank Ruhl Libre","David",serif;
+  --f-body:"Assistant","Segoe UI","Arial Hebrew",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552; --accent:#b9a6ee; --accent-ink:#1d1a2a;
+  --ok:#9fd3a8; --ok-bg:#24352a; --bad:#f0a49c; --bad-bg:#3d2626; --sky:#2c3d55; --rose:#4a2f3a; --gold:#4a4128; --lilac:#3b3156; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552; --accent:#b9a6ee; --accent-ink:#1d1a2a;
+  --ok:#9fd3a8; --ok-bg:#24352a; --bad:#f0a49c; --bad-bg:#3d2626; --sky:#2c3d55; --rose:#4a2f3a; --gold:#4a4128; --lilac:#3b3156; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.55;
+  background:radial-gradient(70% 50% at 90% 0%,color-mix(in srgb,var(--sky) 60%,transparent),transparent 70%),
+             radial-gradient(60% 45% at 0% 100%,color-mix(in srgb,var(--rose) 55%,transparent),transparent 70%),var(--paper);
+  background-attachment:fixed;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:560px;margin:0 auto;padding-block:24px 56px;display:flex;flex-direction:column;gap:22px}
+a{color:inherit}
+.back{font-size:.95rem;color:var(--ink-soft);text-decoration:none}
+h1{font-family:var(--f-display);font-weight:400;font-size:2.4rem;line-height:1.1;margin:0}
+.lede{margin:0;color:var(--ink-soft)}
+.pick{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:150px;padding:20px;text-align:center;
+  border:2px dashed color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:14px;cursor:pointer;
+  background:color-mix(in srgb,var(--paper-2) 80%,transparent)}
+.pick b{font-size:1.25rem}
+.pick span{color:var(--ink-soft);font-size:.95rem}
+.pick input{position:absolute;opacity:0;width:1px;height:1px}
+.pick:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+legend{padding:0;margin-bottom:8px;font-size:.95rem;color:var(--ink-soft)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fields .wide{grid-column:1/-1}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--ink-soft);min-width:0}
+select,input[type=text]{font:inherit;font-size:1rem;color:var(--ink);background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;min-width:0}
+.go{font:inherit;font-size:1.1rem;font-weight:600;border:0;border-radius:999px;padding:14px 20px;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.go:disabled{opacity:.45;cursor:default}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.list li{display:flex;gap:12px;align-items:center;padding:8px;border-radius:10px;background:color-mix(in srgb,var(--paper-2) 85%,transparent);border:1px solid var(--line)}
+.list img{width:56px;height:56px;object-fit:cover;border-radius:6px;flex:none;background:var(--lilac)}
+.list .t{min-width:0;display:flex;flex-direction:column;font-size:.95rem;line-height:1.35}
+.list .t small{color:var(--ink-soft)}
+.list li.ok{background:var(--ok-bg);border-color:transparent}
+.list li.ok b{color:var(--ok)}
+.list li.bad{background:var(--bad-bg);border-color:transparent}
+.list li.bad b{color:var(--bad)}
+.list li.busy b::after{content:"";display:inline-block;width:.8em;height:.8em;margin-inline-start:6px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .9s linear infinite;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sum{padding:14px 16px;border-radius:12px;background:var(--paper-2);box-shadow:var(--shadow)}
+.note{font-size:.88rem;color:var(--ink-soft);margin:0}
+@media (max-width:420px){.fields{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.list li.busy b::after{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./">→ לגלריה</a>
+  <div>
+    <h1>העלאת עבודות</h1>
+    <p class="lede">מצלמים כל עמוד ישר מלמעלה, באור טוב. אפשר לבחור הרבה תמונות בבת אחת. החיתוך, הסיבוב וההסבר נעשים לבד.</p>
+  </div>
+
+  <label class="pick" id="pick">
+    <input type="file" id="files" accept="image/*" multiple>
+    <b>בחירת תמונות</b>
+    <span id="picked">מהגלריה בטלפון או מהמצלמה</span>
+  </label>
+
+  <fieldset>
+    <legend>אם ידוע (לא חובה)</legend>
+    <div class="fields">
+      <label class="f">מקצוע
+        <select id="subject">
+          <option value="">לזהות לבד</option>
+          <option value="torah">תורה</option><option value="navi">נביא</option><option value="moadim">מועדים</option>
+          <option value="mishna">משנה</option><option value="math">חשבון</option><option value="lang">שפה</option>
+          <option value="handasa">הנדסה</option><option value="madaim">מדעים</option><option value="geo">גיאוגרפיה</option>
+          <option value="crafts">בעלי מלאכה</option><option value="eretz">ארץ ישראל</option>
+        </select>
+      </label>
+      <label class="f">שכבה
+        <select id="grade">
+          <option value="">לזהות לבד</option>
+          <option>א</option><option>ב</option><option>ג</option><option>ד</option><option>ה</option><option>ו</option><option>ז</option><option>ח</option>
+        </select>
+      </label>
+      <label class="f wide">נושא
+        <input type="text" id="topic" placeholder="למשל: פרשת נח, חנוכה, שברים" autocomplete="off">
+      </label>
+    </div>
+  </fieldset>
+
+  <button class="go" id="go" type="button" disabled>העלאה לגלריה</button>
+  <div class="sum" id="sum" hidden></div>
+  <ul class="list" id="list"></ul>
+  <p class="note">אחרי ההעלאה אפשר לסגור את הדף. כל תמונה נבדקת לפני שהיא נכנסת לגלריה: רק עבודות מחברת עוברות, ושמות של תלמידים מטושטשים. העבודות מופיעות בגלריה בתוך כמה דקות.</p>
+</div>
+
+<script>
+(function(){
+const API = 'https://script.google.com/macros/s/AKfycbwb1yTV8isNc5aA0GVBdqhJKB5upmJ40MvbV3o-9bGlsxfWAKxZ4pLkTFl4bGmXqh-Xvg/exec';
+const $ = s => document.querySelector(s);
+let queue = [], running = false;
+
+$('#files').addEventListener('change', e => {
+  const fresh = [...e.target.files].filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|heic|webp)$/i.test(f.name));
+  fresh.forEach(f => {
+    const li = document.createElement('li');
+    li.innerHTML = '<img alt=""><div class="t"><b>ממתינה להעלאה</b><small></small></div>';
+    li.querySelector('img').src = URL.createObjectURL(f);
+    $('#list').appendChild(li);
+    queue.push({file: f, li, done: false});
+  });
+  e.target.value = '';
+  refresh();
+});
+
+function refresh(){
+  const waiting = queue.filter(q => !q.done).length;
+  $('#go').disabled = running || !waiting;
+  $('#go').textContent = running ? 'מעלה…' : waiting ? `העלאה לגלריה (${waiting})` : 'העלאה לגלריה';
+  $('#picked').textContent = queue.length ? `נבחרו ${queue.length} תמונות. אפשר להוסיף עוד` : 'מהגלריה בטלפון או מהמצלמה';
+}
+function status(q, cls, head, small){
+  q.li.className = cls; q.li.querySelector('b').textContent = head; q.li.querySelector('small').textContent = small || '';
+}
+
+$('#go').addEventListener('click', async () => {
+  running = true; refresh();
+  const meta = {subject: $('#subject').value, grade: $('#grade').value, topic: $('#topic').value.trim()};
+  const todo = queue.filter(q => !q.done);
+  todo.forEach(q => status(q, '', 'בתור'));
+  const worker = async () => {
+    for (let q; (q = todo.shift()); ) {
+      status(q, 'busy', 'מעלה');
+      try {
+        const r = await sendOne(q, meta);
+        if (r.ok) { q.done = true; status(q, 'ok', 'נשלחה'); }
+        else status(q, 'bad', 'לא נשלחה', r.reason);
+      } catch(e) { status(q, 'bad', 'לא נשלחה', 'תקלה בחיבור. אפשר ללחוץ שוב על "העלאה" כדי לנסות שוב.'); }
+      refresh();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  running = false; refresh(); summary();
+});
+
+function summary(){
+  const ok = queue.filter(q => q.li.className==='ok').length, bad = queue.filter(q => q.li.className==='bad').length;
+  $('#sum').hidden = false;
+  $('#sum').innerHTML = ok
+    ? `<b>תודה! ${ok} תמונות נשלחו.</b> אפשר לסגור את הדף. אחרי בדיקה הן יופיעו <a href="./">בגלריה</a> בתוך כמה דקות.${bad ? ` ${bad} לא נשלחו, אפשר לנסות שוב.` : ''}`
+    : 'התמונות לא נשלחו. אפשר לנסות שוב.';
+}
+
+async function sendOne(q, meta){
+  const img = await loadImage(q.file);
+  const c = draw(img, 2000);
+  const body = JSON.stringify({op:'upload', img: c.toDataURL('image/jpeg', .85).split(',')[1], hash: await sha(q.file), ...meta});
+  for (let i = 0; i < 3; i++) {
+    try {
+      const j = await (await fetch(API, {method:'POST', body})).json();
+      if (!j.retry) return j;
+    } catch(e) { if (i === 2) throw e; }
+    await new Promise(r => setTimeout(r, 3000 * (i + 1)));
+  }
+  return {ok:false, reason:'השרת עמוס כרגע. נסו שוב בעוד כמה דקות.'};
+}
+
+function loadImage(file){
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im); im.onerror = () => rej(new Error('decode'));
+    im.src = URL.createObjectURL(file);   // browsers apply the photo's EXIF orientation
+  });
+}
+function draw(img, max){
+  const W = img.naturalWidth, H = img.naturalHeight, k = Math.min(1, max / Math.max(W, H));
+  const c = document.createElement('canvas');
+  c.width = Math.round(W*k); c.height = Math.round(H*k);
+  const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+  x.drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+async function sha(file){
+  const h = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+  return [...new Uint8Array(h)].slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+addEventListener('beforeunload', e => { if (running) { e.preventDefault(); e.returnValue = ''; } });
+})();</script>
+</body>
+</html>

@@ -244,15 +244,20 @@ function pack(kind,n){
   return packCache[k];
 }
 async function imgURL(it,kind){
+  if (it.file) return /^u\//.test(it.file) ? it.file + (kind==='t' ? '_t.jpg' : '.jpg')
+    : 'https://lh3.googleusercontent.com/d/' + encodeURIComponent(it.file) + '=' + (kind==='t' ? 'w520' : 'w1600');
   const k = kind+it.id;
   if (urlCache[k]) return urlCache[k];
   const [n,off,len] = it[kind];
   const buf = await pack(kind,n);
   return urlCache[k] = URL.createObjectURL(new Blob([buf.slice(off,off+len)],{type:'image/jpeg'}));
 }
+/* a work uploaded minutes ago may not be on the Pages site yet: fall back to the repo's raw copy */
+const RAW = 'https://raw.githubusercontent.com/tomerose7/notebook-gallery/main/';
+function withFallback(img, u){ img.onerror = /^u\//.test(u) ? () => { img.onerror = null; img.src = RAW + u; } : null; }
 function loadThumb(img){
   const it = itemById[img.dataset.id];
-  imgURL(it,'t').then(u => { img.onload = () => img.classList.add('on'); img.src = u; }).catch(()=>{});
+  imgURL(it,'t').then(u => { img.onload = () => img.classList.add('on'); withFallback(img, u); img.src = u; }).catch(()=>{});
 }
 const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
   if (!e.isIntersecting) return; io.unobserve(e.target); loadThumb(e.target);
@@ -364,6 +369,7 @@ function renderHome(){
   app.innerHTML = `<div class="stack">
     <p class="lede">אוסף עבודות מחברת שצוירו בכיתות בית הספר לאורך השנים. בחרו מקצוע, ובתוכו חומש ופרשה, ספר או כיתה. לכל עבודה מצורף הסבר קצר והמקור שהיא מסכמת.</p>
     ${installBox()}
+    <a class="install" href="upload.html"><img src="icon-192.png" alt=""><div><b>יש לכם עבודות מחברת? העלו אותן לגלריה</b><span>מצלמים בטלפון ובוחרים כמה תמונות שרוצים. החיתוך וההסבר נעשים לבד.</span></div><span class="btn">העלאה ←</span></a>
     <nav class="subjects" aria-label="מקצועות">${cards}</nav>
     ${NB.length?`<section class="group"><h3>מחברות שלמות <small>${NB.filter(n=>!n.loose).length}</small></h3>
       <p class="lede">לדפדף במחברת אחת מתחילתה ועד סופה, כפי שנכתבה בכיתה.</p>
@@ -451,8 +457,8 @@ function openLB(id){ lbIx = current.findIndex(i=>i.id===id); showLB(); if (!lb.o
 function showLB(){
   const it = current[lbIx]; if (!it) return;
   const im = $('#lb-img'); im.removeAttribute('src'); im.alt = title(it);
-  imgURL(it,'t').then(u=>{ if(current[lbIx]===it && !im.getAttribute('src')) im.src=u; }).catch(()=>{});
-  imgURL(it,'f').then(u=>{ if(current[lbIx]===it) im.src=u; }).catch(()=>{});
+  imgURL(it,'t').then(u=>{ if(current[lbIx]===it && !im.getAttribute('src')) { withFallback(im,u); im.src=u; } }).catch(()=>{});
+  imgURL(it,'f').then(u=>{ if(current[lbIx]===it) { withFallback(im,u); im.src=u; } }).catch(()=>{});
   $('#lb-where').textContent = where(it);
   $('#lb-title').textContent = title(it);
   $('#lb-desc').textContent = it.desc || 'תיאור העבודה יתווסף בקרוב.';
@@ -480,7 +486,40 @@ lb.addEventListener('touchend',e=>{ if(sx==null) return; const dx=e.changedTouch
 
 let st; $('#q').addEventListener('input',()=>{ clearTimeout(st); st=setTimeout(render,180); });
 addEventListener('hashchange',()=>{ if (lb.open) lb.close(); $('#q').value=''; render(); scrollTo({top:0}); });
+
+/* works uploaded by teachers (upload.html): checked and cataloged in the background by a GitHub Action,
+   which writes the images to u/ and the list to uploads.json in this repo */
+function sortSubj(s, arr){
+  const bo = (G.bookOrder||{})[s] || [];
+  const cmp = (a,b) => a<b ? -1 : a>b ? 1 : 0;
+  const key = i => {
+    const bi = bo.indexOf(i.b) >= 0 ? bo.indexOf(i.b) : (i.b ? bo.length : 999);
+    const so = s==='torah' ? ((G.secOrder||{})[i.b] || []) : [];
+    const si = so.indexOf(i.p) >= 0 ? so.indexOf(i.p) : (i.p ? so.length : 999);
+    return [bi, i.b||'', si, i.p||''];
+  };
+  return arr.map((i,ix)=>[key(i),ix,i]).sort((x,y)=>(x[0][0]-y[0][0])||cmp(x[0][1],y[0][1])||(x[0][2]-y[0][2])||cmp(x[0][3],y[0][3])||(x[1]-y[1])).map(x=>x[2]);
+}
+function addRemote(list){
+  let added = 0;
+  (list||[]).forEach(it => {
+    if (!it || !it.id || !it.file || it.hidden || itemById[it.id] || !bySubj[it.s]) return;
+    it.n = ''; it.pg = 0;
+    G.items.push(it); itemById[it.id] = it; bySubj[it.s].push(it); added++;
+  });
+  if (!added) return false;
+  Object.keys(bySubj).forEach(s => bySubj[s] = sortSubj(s, bySubj[s]));
+  $('#stats').textContent = G.items.length + ' עבודות בגלריה';
+  return true;
+}
+try { addRemote(JSON.parse(localStorage.getItem('uploads') || '[]')); } catch(e){}
 render();
+// the raw copy updates within minutes of a new upload; the Pages copy is the fallback
+fetch(RAW + 'uploads.json?' + Math.floor(Date.now() / 6e4)).then(r => r.ok ? r : fetch('uploads.json')).then(r => r.json()).then(list => {
+  list = (list || []).filter(it => !it.hidden);
+  try { localStorage.setItem('uploads', JSON.stringify(list)); } catch(e){}
+  if (addRemote(list) && !lb.open) render();
+}).catch(()=>{});
 })();
 </script>
 
