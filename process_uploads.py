@@ -164,10 +164,22 @@ def gemini(parts, schema):
                     pass
             elif code in (403, 404):
                 _cool[m] = float('inf')                 # not offered to this key
+            elif code == 429 and ('PerDay' in last or 'per day' in last.lower()):
+                _cool[m] = float('inf')                 # free daily quota used up: done for today
+                _daily.add(m)
             elif code == 429 or code >= 500:
                 _cool[m] = time.time() + 10 * 60        # busy
+        if _daily and all(_cool.get(m, 0) == float('inf') for m in models()):
+            raise QuotaDone()
         time.sleep(20 * (rnd + 1))
     raise RuntimeError('Gemini failed: ' + last[:300])
+
+
+class QuotaDone(Exception):
+    """Every model hit its free daily quota: stop this run; the photos wait for a later run (not counted as a failure)."""
+
+
+_daily = set()
 
 
 # ---------- catalog cleanup ----------
@@ -292,6 +304,9 @@ def main():
                 out = finish(im, r)
                 upright, _ = jpeg(out, 85, 1400)
                 c = gemini([{'text': catalog_prompt(meta)}, {'inline_data': {'mime_type': 'image/jpeg', 'data': b64(upright)}}], CATALOG)
+        except QuotaDone:
+            print('free daily Gemini quota used up; the rest waits for a later run', flush=True)
+            break
         except Exception as e:
             meta['attempts'] = meta.get('attempts', 0) + 1
             meta['error'] = str(e)[:300]
