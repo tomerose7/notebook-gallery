@@ -52,21 +52,37 @@ STYLE = r"""דוגמאות לסגנון הקטלוג הקיים:
 {"subject":"math","book":"חוכמת המספרים","section":"חיבור וחיסור שברים","grade":"ד","title":"חיבור וחיסור במכנים שונים","desc":"שני תרגילים עם חיצי הרחבה (×2) וכלל במסגרת: כדי לחבר או לחסר שברים במכנים שונים מרחיבים אותם תחילה למכנה משותף.","ref":""}
 {"subject":"lang","book":"קריאה ראשונה","grade":"א","title":"יחיד ורבים","desc":"שתי מילים, \"יחיד\" ו\"רבים\": פרח אחד מצד אחד, ושלושה פרחים מהצד השני.","ref":""}"""
 
-SCHEMA = {
+GATE = {
     'type': 'OBJECT',
     'properties': {
         'is_notebook_work': {'type': 'BOOLEAN'},
         'reason': {'type': 'STRING'},
         'box': {'type': 'ARRAY', 'items': {'type': 'INTEGER'}},
         'rotate': {'type': 'INTEGER'},
-        'names': {'type': 'ARRAY', 'items': {'type': 'ARRAY', 'items': {'type': 'INTEGER'}}},
+        'names': {'type': 'ARRAY', 'items': {'type': 'ARRAY', 'items': {'type': 'INTEGER'}}}},
+    'required': ['is_notebook_work']}
+
+CATALOG = {
+    'type': 'OBJECT',
+    'properties': {
+        'text': {'type': 'STRING', 'description': 'המילים שכתובות בעבודה, כפי שהן'},
         'subject': {'type': 'STRING', 'description': 'אחד מ: ' + ', '.join(SUBJECTS)},
         'book': {'type': 'STRING'}, 'section': {'type': 'STRING'}, 'grade': {'type': 'STRING'},
         'title': {'type': 'STRING'}, 'desc': {'type': 'STRING'}, 'ref': {'type': 'STRING'}},
-    'required': ['is_notebook_work']}
+    'required': ['text', 'subject', 'title', 'desc']}
+
+GATE_PROMPT = (
+    'התמונה צולמה בטלפון עבור גלריה של עבודות מחברת (מחברות תקופה בגישה הוולדורפית) בבית ספר.\n'
+    'בדוק אם זו עבודת מחברת: עמוד (או שני עמודים) ממחברת של תלמיד, עם ציור, כתב, תרגילים או רישום צורות. '
+    'תמונה של משהו אחר (אנשים, נוף, צילום מסך, מסמך או דף עבודה מודפס, מחברת ריקה, תמונה מטושטשת) אינה עבודת מחברת: '
+    'is_notebook_work=false, reason=משפט קצר בעברית מה רואים, ושאר השדות ריקים.\n'
+    'אם זו עבודת מחברת:\n'
+    'box: מלבן העבודה עצמה (הדף או הדפים, בלי השולחן והרקע), [ymin,xmin,ymax,xmax] בסקלה 0–1000 של התמונה כפי שהיא.\n'
+    'rotate: בכמה מעלות עם כיוון השעון לסובב את התמונה כדי שהכתב והציור יעמדו ישר (0, 90, 180 או 270). שים לב לכיוון הכתב העברי.\n'
+    'names: מלבנים של שמות תלמידים שכתובים בעבודה, באותה סקלה. רשימה ריקה אם אין.')
 
 
-def prompt(meta):
+def catalog_prompt(meta):
     hints = []
     if meta.get('subject') in SUBJECTS:
         hints.append(f"המקצוע (נקבע בידי המורה, להשתמש בו): {meta['subject']} = {SUBJECTS[meta['subject']]}")
@@ -75,22 +91,16 @@ def prompt(meta):
     if meta.get('grade'):
         hints.append(f"השכבה (נקבעה בידי המורה, להשתמש בה): {meta['grade']}")
     return (
-        'אתה מקטלג עבודות מחברת (מחברות תקופה בגישה הוולדורפית) עבור גלריה למורים בבית ספר דתי. התמונה צולמה בטלפון.\n'
-        '1. בדוק אם זו עבודת מחברת: עמוד (או שני עמודים) ממחברת של תלמיד, עם ציור, כתב, תרגילים או רישום צורות. '
-        'תמונה של משהו אחר (אנשים, נוף, צילום מסך, מסמך או דף עבודה מודפס, מחברת ריקה, תמונה מטושטשת) אינה עבודת מחברת: '
-        'is_notebook_work=false, reason=משפט קצר בעברית מה רואים, ושאר השדות ריקים.\n'
-        '2. אם זו עבודת מחברת:\n'
-        'box: מלבן העבודה עצמה (הדף או הדפים, בלי השולחן והרקע), [ymin,xmin,ymax,xmax] בסקלה 0–1000 של התמונה כפי שהיא.\n'
-        'rotate: בכמה מעלות עם כיוון השעון לסובב את התמונה כדי שהכתב והציור יעמדו ישר (0, 90, 180 או 270). שים לב לכיוון הכתב העברי.\n'
-        'names: מלבנים של שמות תלמידים שכתובים בעבודה, באותה סקלה. רשימה ריקה אם אין.\n'
-        'title: כותרת קצרה (2–6 מילים). אם יש פסוק מרכזי אפשר לצטט אותו במירכאות.\n'
+        'אתה מקטלג עבודת מחברת (מחברות תקופה בגישה הוולדורפית) עבור גלריה למורים בבית ספר דתי. התמונה כבר חתוכה ומיושרת.\n'
+        'text: קודם כול העתק את המילים שכתובות בעבודה, בדיוק כפי שהן (כתב יד של ילד, קרא בעיון אות אחר אות). אם אין כתב, ריק.\n'
+        'אחר כך, על סמך המילים שהעתקת ועל סמך הציור:\n'
+        'title: כותרת קצרה (2–6 מילים). אם יש פסוק מרכזי אפשר לצטט אותו במירכאות, רק מילים שבאמת כתובות.\n'
         'desc: משפט או שניים שמתארים מה רואים בציור ובכתוב, בעברית פשוטה ומדויקת. לא להמציא.\n'
-        'ref: מקור הפסוק או הקטע (למשל "בראשית ז, יז"), רק אם מזוהה בביטחון. אחרת ריק.\n'
-        'subject/book/section/grade: לפי הרשימה למטה, כל שדה רק הערך עצמו. אם לא בטוח, ריק.\n'
+        'ref: מקור הפסוק או הקטע (למשל "בראשית ו, יד"), רק אם המילים הכתובות מזוהות בביטחון. אחרת ריק.\n'
+        'subject/book/section/grade: לפי הרשימה למטה, כל שדה רק הערך עצמו. הפרשה נקבעת לפי מקור הפסוק. אם לא בטוח, ריק.\n'
         'לא לציין שם של תלמיד בשום שדה. כל שדה טקסט בעברית בלבד, בלי הערות.\n'
         + (('פרטים שמילא המורה:\n' + '\n'.join(hints) + '\n') if hints else 'המורה לא מילא פרטים: קבע לפי תוכן העבודה.\n')
         + TAXONOMY + '\n' + STYLE)
-
 
 # ---------- Gemini ----------
 
@@ -128,9 +138,9 @@ def models():
     return _models
 
 
-def gemini(parts):
+def gemini(parts, schema):
     body = {'contents': [{'role': 'user', 'parts': parts}],
-            'generationConfig': {'temperature': 0.2, 'responseMimeType': 'application/json', 'responseSchema': SCHEMA}}
+            'generationConfig': {'temperature': 0.2, 'responseMimeType': 'application/json', 'responseSchema': schema}}
     last = ''
     for rnd in range(3):
         fresh = [m for m in models() if _cool.get(m, 0) < time.time()]
@@ -234,6 +244,10 @@ def finish(im, r):
     return c.rotate(-rot, expand=True) if rot else c     # PIL rotates counter-clockwise
 
 
+def b64(data):
+    return base64.b64encode(data).decode()
+
+
 # ---------- run ----------
 
 def move(meta_path, folder, meta):
@@ -270,8 +284,14 @@ def main():
         print(f'{h}:', flush=True)
         try:
             im = ImageOps.exif_transpose(Image.open(mp.with_suffix('.jpg'))).convert('RGB')
+            # pass 1 on the photo as taken: is it a notebook page, where is it, which way up, where are names
             small, _ = jpeg(im, 80, 1024)
-            r = gemini([{'text': prompt(meta)}, {'inline_data': {'mime_type': 'image/jpeg', 'data': base64.b64encode(small).decode()}}])
+            r = gemini([{'text': GATE_PROMPT}, {'inline_data': {'mime_type': 'image/jpeg', 'data': b64(small)}}], GATE)
+            if r.get('is_notebook_work'):
+                # pass 2 on the cropped, upright image: reading the child's handwriting goes much better this way
+                out = finish(im, r)
+                upright, _ = jpeg(out, 85, 1400)
+                c = gemini([{'text': catalog_prompt(meta)}, {'inline_data': {'mime_type': 'image/jpeg', 'data': b64(upright)}}], CATALOG)
         except Exception as e:
             meta['attempts'] = meta.get('attempts', 0) + 1
             meta['error'] = str(e)[:300]
@@ -287,8 +307,8 @@ def main():
             move(mp, 'rejected', meta); counts['rejected'] += 1
             print('  rejected', flush=True)
             continue
-        cat = normalize(r, meta)
-        out = finish(im, r)
+        cat = normalize(c, meta)
+
         uid = 'u' + h[:12]
         full, (w, hh) = jpeg(out, 86, 1600)
         thumb, _ = jpeg(out, 82, 520)
