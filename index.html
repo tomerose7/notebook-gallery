@@ -19,6 +19,7 @@
 .install img{width:44px;height:44px;border-radius:10px;flex:none}
 .install div{flex:1 1 220px;min-width:0}
 .install b{display:block}
+a.install{text-decoration:none;color:inherit}
 .install span{color:var(--ink-soft);font-size:.92rem}
 .install .btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 a.card{text-decoration:none;color:inherit}
@@ -371,10 +372,7 @@ function renderHome(){
     ${installBox()}
     <a class="install" href="upload.html"><img src="icon-192.png" alt=""><div><b>יש לכם עבודות מחברת? העלו אותן לגלריה</b><span>מצלמים בטלפון ובוחרים כמה תמונות שרוצים. החיתוך וההסבר נעשים לבד.</span></div><span class="btn">העלאה ←</span></a>
     <nav class="subjects" aria-label="מקצועות">${cards}</nav>
-    ${NB.length?`<section class="group"><h3>מחברות שלמות <small>${NB.filter(n=>!n.loose).length}</small></h3>
-      <p class="lede">לדפדף במחברת אחת מתחילתה ועד סופה, כפי שנכתבה בכיתה.</p>
-      <div class="grid">${NB.filter(n=>!n.loose).slice(0,8).map(nbCard).join('')}</div>
-      <div class="row"><a class="chip" href="#notebooks">לכל המחברות ←</a></div></section>`:''}</div>`;
+    ${NB.length?`<a class="install" href="#notebooks"><div><b>מחברות שלמות (${NB.filter(n=>!n.loose).length})</b><span>לדפדף במחברת אחת מתחילתה ועד סופה, כפי שנכתבה בכיתה.</span></div><span class="btn">לפתוח ←</span></a>`:''}</div>`;
   document.title = 'גלריית עבודות מחברת';
   wireCards();
 }
