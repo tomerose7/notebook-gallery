@@ -271,7 +271,44 @@ def b64(data):
 
 # ---------- run ----------
 
+LOG = []        # log.json in this public repo: one line per processed photo, read by admin.html
+LOG_KEEP = 4000
+
+
+def now_il():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo('Asia/Jerusalem')).strftime('%Y-%m-%d %H:%M')
+
+
+def log_entry(meta, processed=''):
+    e = {'t': meta.get('time', ''), 'p': processed, 'r': meta.get('result') or 'failed'}
+    if meta.get('id'): e['id'] = meta['id']
+    if meta.get('reason'): e['why'] = short(meta['reason'], 200)
+    if e['r'] == 'failed': e['why'] = short(meta.get('error', ''), 200)
+    return e
+
+
+def load_log():
+    """log.json, or on the first run a log rebuilt from what the inbox repo already holds."""
+    path = PUB / 'log.json'
+    if path.exists():
+        return json.loads(path.read_text(encoding='utf-8-sig'))
+    out = []
+    for folder in ('done', 'rejected', 'failed'):
+        for mp in (INBOX / folder).glob('*.json') if (INBOX / folder).exists() else []:
+            m = json.loads(mp.read_text(encoding='utf-8-sig'))
+            m.setdefault('result', {'done': 'accepted', 'rejected': 'rejected', 'failed': 'failed'}[folder])
+            out.append(log_entry(m))
+    return sorted(out, key=lambda e: e['t'])
+
+
+def save_log():
+    (PUB / 'log.json').write_text(json.dumps(LOG[-LOG_KEEP:], ensure_ascii=False, indent=0), encoding='utf-8')
+
+
 def move(meta_path, folder, meta):
+    LOG.append(log_entry(meta, now_il()))
     dest = INBOX / folder
     dest.mkdir(exist_ok=True)
     img = meta_path.with_suffix('.jpg')
@@ -288,6 +325,7 @@ def main():
     items = json.loads(lst_path.read_text(encoding='utf-8-sig')) if lst_path.exists() else []
     known = {it.get('hash') for it in items}
     (PUB / 'u').mkdir(exist_ok=True)
+    LOG.extend(load_log())
     pending = sorted((INBOX / 'inbox').glob('*.json')) if (INBOX / 'inbox').exists() else []
     print(f'{len(pending)} waiting', flush=True)
     counts = {'accepted': 0, 'rejected': 0, 'dup': 0, 'retry': 0}
@@ -355,6 +393,7 @@ def main():
         print(f'  accepted as {uid}', flush=True)
     if not lst_path.exists():
         lst_path.write_text('[]', encoding='utf-8')
+    save_log()
     print(json.dumps(counts))
 
 

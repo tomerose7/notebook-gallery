@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ניהול הגלריה</title>
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bellefair&family=Assistant:wght@400;600;700&display=swap">
+<style>
+/* Management page for the notebook gallery: what came in, what was turned away, who visits.
+   Reads uploads.json + log.json (this repo), the Action runs (GitHub API) and daily visit totals (Apps Script). */
+:root{
+  --paper:#f6f4f9; --paper-2:#fffdfb; --ink:#3a3352; --ink-soft:#6c6585; --line:#ddd6e8;
+  --accent:#7a64ad; --new:#7a64ad; --ret:#c9b9e6; --ok:#4f8a5b; --bad:#b4533f; --warn:#a07a1c;
+  --f-display:"Bellefair","Frank Ruhl Libre","David",serif;
+  --f-body:"Assistant","Segoe UI","Arial Hebrew",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552;
+  --accent:#b9a6ee; --new:#b9a6ee; --ret:#5d5284; --ok:#8cc79a; --bad:#e79a87; --warn:#e2c068; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#1d1a2a; --paper-2:#26223a; --ink:#ece7f6; --ink-soft:#b2abc8; --line:#3a3552;
+  --accent:#b9a6ee; --new:#b9a6ee; --ret:#5d5284; --ok:#8cc79a; --bad:#e79a87; --warn:#e2c068; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 64px;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance}
+h1{font-size:2.2rem} h2{font-size:1.5rem}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px}
+header p{margin:0;color:var(--ink-soft);font-size:.92rem}
+a{color:var(--accent)}
+button{font:inherit;color:var(--ink);background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:6px 14px;cursor:pointer}
+section{display:flex;flex-direction:column;gap:14px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.tile{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.tile b{display:block;font-size:1.9rem;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{color:var(--ink-soft);font-size:.88rem}
+.tile small{display:block;color:var(--ink-soft);font-size:.8rem;margin-top:2px}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:16px}
+.chart{display:flex;align-items:flex-end;gap:3px;height:140px;direction:ltr;overflow-x:auto}
+.bar{flex:1 0 12px;display:flex;flex-direction:column-reverse;height:100%;position:relative}
+.bar i{display:block;width:100%}
+.bar .n{background:var(--new);border-radius:0 0 2px 2px}
+.bar .r{background:var(--ret);border-radius:2px 2px 0 0}
+.axis{display:flex;justify-content:space-between;direction:ltr;color:var(--ink-soft);font-size:.78rem;margin-top:6px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--ink-soft);font-size:.88rem}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-inline-end:6px;vertical-align:baseline}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:.9rem;background:var(--paper-2)}
+.chip b{font-variant-numeric:tabular-nums}
+.day{display:flex;flex-direction:column;gap:6px}
+.day h3{margin:10px 0 2px;font-size:1rem;color:var(--ink-soft);font-weight:600}
+.row{display:flex;gap:12px;align-items:center;padding:8px 10px;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;min-width:0}
+.row img{width:54px;height:54px;object-fit:cover;border-radius:4px;flex:none;background:var(--line)}
+.row .ic{width:54px;height:54px;flex:none;display:grid;place-items:center;border-radius:4px;font-size:1.3rem;background:var(--paper)}
+.row div{flex:1;min-width:0}
+.row b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row span{color:var(--ink-soft);font-size:.86rem}
+.tag{font-size:.78rem;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;flex:none}
+.ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters button[aria-pressed="true"]{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+.note{color:var(--ink-soft);font-size:.88rem;margin:0}
+.err{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>ניהול הגלריה</h1>
+    <p><span id="when">טוען…</span> · <button id="reload" type="button">רענון</button> · <a href="./">לגלריה</a></p>
+  </header>
+
+  <section aria-labelledby="h-now">
+    <h2 id="h-now">תמונת מצב</h2>
+    <div class="tiles" id="tiles"></div>
+    <p class="note" id="proc"></p>
+  </section>
+
+  <section aria-labelledby="h-vis">
+    <h2 id="h-vis">כניסות לאתר, 30 הימים האחרונים</h2>
+    <div class="card">
+      <div class="chart" id="chart"></div>
+      <div class="axis" id="axis"></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--new)"></i>מבקרים חדשים</span><span><i style="background:var(--ret)"></i>מבקרים חוזרים</span></div>
+    <p class="note">הספירה התחילה ב-15/11/2026. "חדש" ו"חוזר" נקבעים לפי הדפדפן: מי שנכנס גם מהטלפון וגם מהמחשב ייספר פעמיים. התקנת אפליקציה נספרת בפעם הראשונה שהיא נפתחת במכשיר. לא נשמר שום פרט מזהה, רק סכומים יומיים. הכניסות מהדפדפן הזה לא נספרות.</p>
+  </section>
+
+  <section aria-labelledby="h-subj">
+    <h2 id="h-subj">עבודות לפי מקצוע</h2>
+    <div class="chips" id="subj"></div>
+  </section>
+
+  <section aria-labelledby="h-log">
+    <h2 id="h-log">יומן עדכונים</h2>
+    <div class="filters" id="filters"></div>
+    <div id="log"></div>
+    <button id="more" type="button" hidden>להציג עוד</button>
+  </section>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+const RAW = 'https://raw.githubusercontent.com/tomerose7/notebook-gallery/main/';
+const API = 'https://script.google.com/macros/s/AKfycbwb1yTV8isNc5aA0GVBdqhJKB5upmJ40MvbV3o-9bGlsxfWAKxZ4pLkTFl4bGmXqh-Xvg/exec';
+const RUNS = 'https://api.github.com/repos/tomerose7/notebook-gallery/actions/runs?per_page=60';
+const G = window.GALLERY || {subjects:[], items:[]};
+const NAMES = {}; G.subjects.forEach(s => NAMES[s.slug] = s.name); NAMES.avira = 'ציורי אווירה';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+try { localStorage.setItem('noStats', '1'); } catch(e){}   // the owner's own visits are not counted
+
+const ymd = d => d.toLocaleDateString('sv-SE', {timeZone:'Asia/Jerusalem'});
+const TODAY = ymd(new Date());
+const daysAgo = n => ymd(new Date(Date.now() - n * 864e5));
+const heDay = s => { const [y,m,d] = s.split('-'); return `${+d}/${+m}`; };
+const ilTime = iso => new Date(iso).toLocaleString('sv-SE', {timeZone:'Asia/Jerusalem'}).slice(0,16);
+
+let entries = [], shown = 60, filter = 'all';
+
+async function getJSON(url, opt){ const r = await fetch(url, opt); if (!r.ok) throw new Error(r.status); return r.json(); }
+
+async function load(){
+  $('#when').textContent = 'טוען…';
+  const bust = '?' + Date.now();
+  const [ups, log, runs, st] = await Promise.all([
+    getJSON(RAW + 'uploads.json' + bust).catch(() => getJSON('uploads.json' + bust).catch(() => [])),
+    getJSON(RAW + 'log.json' + bust).catch(() => null),
+    getJSON(RUNS).catch(() => null),
+    getJSON(API, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({op:'stats'})}).catch(() => null)
+  ]);
+  const days = (st && st.days) || {};
+  const byId = {}; ups.forEach(u => byId[u.id] = u);
+
+  // ---- log: processed photos + failed Action runs ----
+  entries = [];
+  if (log) log.forEach(e => entries.push({when: e.p || e.t, up: e.t, kind: e.r, item: byId[e.id], why: e.why}));
+  else ups.forEach(u => entries.push({when: u.t, up: u.t, kind: 'accepted', item: u}));
+  const runList = (runs && runs.workflow_runs) || [];
+  runList.filter(r => r.conclusion === 'failure').forEach(r =>
+    entries.push({when: ilTime(r.created_at), kind: 'runfail', url: r.html_url, num: r.run_number}));
+  entries = entries.filter(e => e.kind !== 'dup' && e.when).sort((a,b) => a.when < b.when ? 1 : -1);
+
+  // ---- tiles ----
+  const live = ups.filter(u => !u.hidden);
+  const total = G.items.length + live.length;
+  const week = daysAgo(6);
+  const inWeek = (k) => entries.filter(e => e.kind === k && e.when.slice(0,10) >= week).length;
+  const sum = (from, f) => Object.keys(days).filter(d => d >= from).reduce((s,d) => s + (days[d][f] || 0), 0);
+  const t = days[TODAY] || {};
+  const tiles = [
+    [total, 'עבודות בגלריה', `${G.items.length} מהקטלוג המקורי, ${live.length} מהעלאות`],
+    [inWeek('accepted'), 'נוספו בשבוע האחרון', ''],
+    [inWeek('rejected'), 'לא נכנסו בשבוע האחרון', 'לא עבודת מחברת או ציור לוח'],
+    [st ? (t.v || 0) : '–', 'כניסות היום', st ? `${t.n||0} חדשים · ${t.r||0} חוזרים` : 'אין חיבור למונה'],
+    [st ? sum(week,'v') : '–', 'כניסות בשבוע', st ? `${sum(week,'n')} חדשים · ${sum(week,'r')} חוזרים` : ''],
+    [st ? sum('0','i') : '–', 'התקנות אפליקציה', st ? `${sum(week,'a')} פתיחות כאפליקציה בשבוע` : ''],
+    [st ? sum(week,'u') : '–', 'תמונות שהועלו בשבוע', 'כולל מה שעוד לא עובד'],
+    [st && st.pending != null ? st.pending : '–', 'ממתינות לעיבוד', '']
+  ];
+  $('#tiles').innerHTML = tiles.map(([n,l,s]) => `<div class="tile"><b>${esc(n)}</b><span>${esc(l)}</span>${s?`<small>${esc(s)}</small>`:''}</div>`).join('');
+
+  const last = runList.find(r => r.status === 'completed' && r.conclusion !== 'cancelled');
+  const running = runList.find(r => r.status === 'in_progress');
+  $('#proc').innerHTML = (running ? 'העיבוד רץ עכשיו. ' : '') + (last ? `העיבוד האחרון הסתיים ב-${esc(ilTime(last.updated_at))}: ` +
+    (last.conclusion === 'success' ? '<span class="ok">תקין</span>' : `<a class="bad" href="${esc(last.html_url)}">נכשל</a>`) : '');
+
+  // ---- visits chart ----
+  const span = []; for (let i = 29; i >= 0; i--) span.push(daysAgo(i));
+  const max = Math.max(1, ...span.map(d => (days[d]||{}).v || 0));
+  $('#chart').innerHTML = st ? span.map(d => { const x = days[d] || {};
+    return `<div class="bar" title="${heDay(d)}: ${x.v||0} כניסות (${x.n||0} חדשים, ${x.r||0} חוזרים)">
+      <i class="n" style="height:${(x.n||0)/max*100}%"></i><i class="r" style="height:${(x.r||0)/max*100}%"></i></div>`; }).join('')
+    : '<p class="err">לא הצלחתי לקרוא את מונה הכניסות.</p>';
+  $('#axis').innerHTML = `<span>${heDay(span[0])}</span><span>${heDay(span[15])}</span><span>היום</span>`;
+
+  // ---- by subject ----
+  const by = {}; G.items.forEach(i => by[i.s] = (by[i.s]||0) + 1); live.forEach(i => by[i.s] = (by[i.s]||0) + 1);
+  $('#subj').innerHTML = Object.keys(by).sort((a,b) => by[b]-by[a]).map(s =>
+    `<a class="chip" href="./#${esc(s)}" style="text-decoration:none;color:inherit">${esc(NAMES[s]||s)} <b>${by[s]}</b></a>`).join('');
+
+  renderLog();
+  $('#when').textContent = 'עודכן ' + new Date().toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
+}
+
+const KINDS = {accepted:['נכנסה','ok'], rejected:['לא נכנסה','bad'], failed:['תקלה','warn'], runfail:['תקלה בעיבוד','warn']};
+function renderFilters(){
+  const opts = [['all','הכול'],['accepted','נכנסו'],['rejected','לא נכנסו'],['problems','תקלות']];
+  $('#filters').innerHTML = opts.map(([k,l]) => `<button type="button" data-f="${k}" aria-pressed="${filter===k}">${l}</button>`).join('');
+}
+function renderLog(){
+  renderFilters();
+  const list = entries.filter(e => filter === 'all' || e.kind === filter || (filter === 'problems' && (e.kind === 'failed' || e.kind === 'runfail')));
+  let html = '', day = '';
+  list.slice(0, shown).forEach(e => {
+    const d = e.when.slice(0,10);
+    if (d !== day) { day = d; html += `<h3>${d === TODAY ? 'היום' : heDay(d) + '/' + d.slice(0,4)}</h3>`; }
+    const [label, cls] = KINDS[e.kind] || [e.kind, 'warn'];
+    const time = e.when.slice(11,16);
+    if (e.kind === 'runfail') {
+      html += `<div class="row"><span class="ic">⚠</span><div><b>ריצת עיבוד #${e.num} נכשלה</b><span>${time} · <a href="${esc(e.url)}">פרטים</a></span></div><span class="tag ${cls}">${label}</span></div>`;
+    } else if (e.item) {
+      const it = e.item;
+      html += `<div class="row"><img loading="lazy" src="${RAW}${esc(it.file)}_t.jpg" alt=""><div><b>${esc(it.title)}</b>
+        <span>${time} · ${esc(NAMES[it.s]||it.s)}${it.b?' · '+esc(it.b):''}${it.p?' · '+esc(it.p):''}${it.k==='board'?' · ציור לוח':''}${it.hidden?' · מוסתרת':''}</span></div><span class="tag ${cls}">${label}</span></div>`;
+    } else {
+      html += `<div class="row"><span class="ic">${e.kind==='rejected'?'✕':'⚠'}</span><div><b>${esc(e.why || (e.kind==='rejected'?'לא עבודת מחברת':'העיבוד נכשל'))}</b>
+        <span>${time}${e.up && e.up !== e.when ? ' · הועלתה ' + esc(e.up) : ''}</span></div><span class="tag ${cls}">${label}</span></div>`;
+    }
+  });
+  $('#log').innerHTML = html || '<p class="note">אין עדיין רשומות.</p>';
+  $('#more').hidden = list.length <= shown;
+}
+
+$('#filters').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; filter = b.dataset.f; shown = 60; renderLog(); });
+$('#more').addEventListener('click', () => { shown += 100; renderLog(); });
+$('#reload').addEventListener('click', load);
+load().catch(e => { $('#when').innerHTML = '<span class="err">שגיאה בטעינה</span>'; console.error(e); });
+})();
+</script>
+</body>
+</html>

@@ -534,6 +534,23 @@ fetch(RAW + 'uploads.json?' + Math.floor(Date.now() / 6e4)).then(r => r.ok ? r :
   try { localStorage.setItem('uploads', JSON.stringify(list)); } catch(e){}
   if (addRemote(list) && !lb.open) render();
 }).catch(()=>{});
+
+/* anonymous visit count for the management page (admin.html): one per visit, daily totals only.
+   "seen" = this browser visited before; "app" = opened as the installed app. Browsers that opened admin.html are not counted. */
+const HIT = 'https://script.google.com/macros/s/AKfycbwb1yTV8isNc5aA0GVBdqhJKB5upmJ40MvbV3o-9bGlsxfWAKxZ4pLkTFl4bGmXqh-Xvg/exec';
+const ping = b => fetch(HIT, {method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain'}, body:JSON.stringify(b)}).catch(()=>{});
+try {
+  if (!localStorage.getItem('noStats') && !sessionStorage.getItem('counted') && /github\.io$/.test(location.hostname)) {
+    sessionStorage.setItem('counted', '1');
+    const seen = !!localStorage.getItem('seen');
+    localStorage.setItem('seen', '1');
+    const app = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    // an install is counted the first time the app is opened on a device (works on iPhone too, which has no install event)
+    const firstApp = app && !localStorage.getItem('appSeen');
+    if (app) localStorage.setItem('appSeen', '1');
+    ping({op:'hit', seen, app, firstApp});
+  }
+} catch(e){}
 })();
 </script>
 
