@@ -38,15 +38,27 @@ jobs:
         run: |
           git config --global user.name "gallery-bot"
           git config --global user.email "gallery-bot@users.noreply.github.com"
+          # inbox/ empties when everything moves to done/; git then reads it as a folder rename and puts
+          # photos uploaded meanwhile into done/ (conflict). Turn that guess off.
+          git config --global merge.directoryRenames false
+          save() {   # new uploads can land between pull and push: try again
+            for i in 1 2 3 4; do
+              if git pull -q --rebase; then git push -q && return 0; else git rebase --abort; fi
+              sleep $((i * 5))
+            done
+            return 1
+          }
+          ok=0
           cd pub
           git add -A
           if ! git diff --cached --quiet; then
             git commit -q -m "uploads: new works"
-            git pull -q --rebase && git push -q
+            save || ok=1
           fi
           cd ../inbox
           git add -A
           if ! git diff --cached --quiet; then
             git commit -q -m "processed"
-            git pull -q --rebase && git push -q
+            save || ok=1
           fi
+          exit $ok
