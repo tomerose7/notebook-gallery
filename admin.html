@@ -109,7 +109,7 @@ const RAW = 'https://raw.githubusercontent.com/tomerose7/notebook-gallery/main/'
 const API = 'https://script.google.com/macros/s/AKfycbwb1yTV8isNc5aA0GVBdqhJKB5upmJ40MvbV3o-9bGlsxfWAKxZ4pLkTFl4bGmXqh-Xvg/exec';
 const RUNS = 'https://api.github.com/repos/tomerose7/notebook-gallery/actions/runs?per_page=60';
 const G = window.GALLERY || {subjects:[], items:[]};
-const NAMES = {}; G.subjects.forEach(s => NAMES[s.slug] = s.name); Object.assign(NAMES, {avira:'ציורי אווירה', watercolor:'צבעי מים', handcraft:'מלאכות'});
+const NAMES = {}; G.subjects.forEach(s => NAMES[s.slug] = s.name); Object.assign(NAMES, {avira:'ציורי אווירה', watercolor:'צבעי מים', handcraft:'מלאכות', art:'אמנות'});
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 try { localStorage.setItem('noStats', '1'); } catch(e){}   // the owner's own visits are not counted

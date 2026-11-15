@@ -25,8 +25,9 @@ DEADLINE = time.time() + 45 * 60
 SUBJECTS = {
     'torah': 'תורה', 'navi': 'נביא', 'moadim': 'מועדים', 'mishna': 'משנה', 'math': 'חשבון', 'lang': 'שפה',
     'handasa': 'הנדסה', 'madaim': 'מדעים', 'geo': 'גיאוגרפיה', 'crafts': 'בעלי מלאכה', 'eretz': 'ארץ ישראל', 'avira': 'ציורי אווירה', 'watercolor': 'צבעי מים', 'handcraft': 'מלאכות',
-    'other': 'עוד עבודות'}
+    'art': 'אמנות', 'other': 'עוד עבודות'}
 HANDCRAFT = ['עבודות עץ', 'צמר', 'חוטים', 'מועדים']
+ART = ['פוינטליזם', 'פחם', 'קוביזם', 'סימטריה', 'ויטראז׳', 'פסיפס', 'הדפס']
 PARASHOT = {
     'בראשית': ['בראשית', 'נח', 'לך לך', 'וירא', 'חיי שרה', 'תולדות', 'ויצא', 'וישלח', 'וישב', 'מקץ', 'ויגש', 'ויחי'],
     'שמות': ['שמות', 'וארא', 'בא', 'בשלח', 'יתרו', 'משפטים', 'תרומה', 'תצוה', 'כי תשא', 'ויקהל', 'פקודי'],
@@ -47,6 +48,7 @@ handasa = הנדסה (רישום צורות, גאומטריה). madaim = מדע�
 geo = גיאוגרפיה (מפות, נופים). crafts = בעלי מלאכה. eretz = ארץ ישראל (שבעת המינים, חקלאות).
 avira = ציורי אווירה: ציור לוח שלם או מסגרת לוח שנותנים אווירה לתקופה או לחג (לא סיכום של שיעור). book = החג או עונת השנה (למשל פורים / חנוכה / סתיו / אביב), section ריק.
 watercolor = צבעי מים: ציור צבעי מים (רטוב על רטוב) על דף נפרד, לא בתוך מחברת. book = הנושא או העונה בקצרה (למשל סתיו / ים / צבעים), או ריק.
+art = אמנות: ציור או יצירה על דף או משטח נפרד שאינם צבעי מים (פחם, פוינטליזם, קוביזם, סימטריה, ויטראז׳, פסיפס, הדפס). book = אחד מ: """ + ' / '.join(ART) + """, או ריק.
 handcraft = מלאכות: חפץ שהתלמידים הכינו בידיים. book = אחד בדיוק מ: עבודות עץ / צמר / חוטים / מועדים (מלאכה לחג, למשל חנוכייה או רעשן). section = מה החפץ, בקצרה.
 other = רק אם באמת לא מתאים לאף מקצוע.
 שכבה (grade): אות אחת מ-א עד ח, או ריק אם לא ידוע."""
@@ -61,7 +63,7 @@ GATE = {
     'type': 'OBJECT',
     'properties': {
         'is_notebook_work': {'type': 'BOOLEAN'},
-        'kind': {'type': 'STRING', 'enum': ['notebook', 'board_lesson', 'board_atmosphere', 'watercolor', 'craft', 'none']},
+        'kind': {'type': 'STRING', 'enum': ['notebook', 'board_lesson', 'board_atmosphere', 'watercolor', 'art', 'craft', 'none']},
         'reason': {'type': 'STRING'},
         'box': {'type': 'ARRAY', 'items': {'type': 'INTEGER'}},
         'rotate': {'type': 'INTEGER'},
@@ -79,18 +81,19 @@ CATALOG = {
 
 GATE_PROMPT = (
     'התמונה צולמה בטלפון עבור גלריה של עבודות מחברת (מחברות תקופה בגישה הוולדורפית) בבית ספר.\n'
-    'הגלריה מקבלת חמישה סוגים (kind):\n'
+    'הגלריה מקבלת שישה סוגים (kind):\n'
     'notebook: עמוד (או שני עמודים) ממחברת של תלמיד, עם ציור, כתב, תרגילים או רישום צורות. גם עמוד מחברת שצויר בצבעי מים הוא notebook.\n'
     'board_lesson: ציור גיר של מורה על לוח הכיתה שמסכם שיעור ומשמש דוגמה לעבודת מחברת (ציור עם כותרת, פסוק, תרגיל וכדומה).\n'
     'board_atmosphere: ציור לוח שלם או מסגרת מצוירת סביב הלוח, שנותנים אווירה לתקופה או לחג (למשל מסגרת של פורים).\n'
     'watercolor: ציור צבעי מים (רטוב על רטוב) על דף נפרד, לא בתוך מחברת, בדרך כלל בלי כתב.\n'
+    'art: ציור או יצירת אמנות של תלמיד על דף או משטח נפרד, שאינם צבעי מים (פחם, פוינטליזם, קוביזם, סימטריה, ויטראז׳, פסיפס, הדפס).\n'
     'craft: חפץ שתלמידים הכינו בידיים (עבודת עץ, צמר, חוטים, מלאכה לחג), מצולם בלי אנשים.\n'
     'גם צילום של כמה עבודות יחד (תצוגה על שולחן או קיר, כמה ציורים זה לצד זה) מתאים, אם העבודות הן העיקר בתמונה. '
     'ידיים שמחזיקות את העבודה לא מפריעות. '
     'אבל אם רואים בתמונה פנים של ילד או של אדם, היא לא מתאימה בשום מקרה. '
     'כל דבר אחר (אנשים, נוף, צילום מסך, מסמך או דף עבודה מודפס, מחברת או לוח ריקים, תמונה מטושטשת, תמונה מהאינטרנט) אינו מתאים: '
     'kind=none, is_notebook_work=false, reason=משפט קצר בעברית מה רואים, ושאר השדות ריקים.\n'
-    'אם זה אחד מחמשת הסוגים: is_notebook_work=true, ו:\n'
+    'אם זה אחד מששת הסוגים: is_notebook_work=true, ו:\n'
     'box: מלבן העבודה עצמה (הדף או הדפים, הלוח, או החפץ, בלי השולחן, הקיר והרקע), [ymin,xmin,ymax,xmax] בסקלה 0–1000 של התמונה כפי שהיא.\n'
     'rotate: בכמה מעלות עם כיוון השעון לסובב את התמונה כדי שהכתב והציור יעמדו ישר (0, 90, 180 או 270). שים לב לכיוון הכתב העברי.\n'
     'names: מלבנים של שמות תלמידים שכתובים בעבודה, באותה סקלה. רשימה ריקה אם אין.')
@@ -104,6 +107,8 @@ def catalog_prompt(meta, kind=''):
         hints.append('זה ציור אווירה על הלוח (או מסגרת לוח) לתקופה או לחג: subject=avira, book=החג או העונה.')
     if kind == 'watercolor':
         hints.append('זה ציור צבעי מים על דף נפרד: subject=watercolor.')
+    if kind == 'art':
+        hints.append('זו יצירת אמנות על דף או משטח נפרד: subject=art, book אחד מ: ' + ' / '.join(ART) + '.')
     if kind == 'craft':
         hints.append('זו מלאכת יד של תלמידים (חפץ, לא ציור): subject=handcraft, book אחד מ: ' + ' / '.join(HANDCRAFT) + '.')
     if meta.get('subject') in SUBJECTS:
@@ -226,8 +231,13 @@ def normalize(r, meta):
         sec = re.sub(r'^פרשת\s+', '', section)
         p = next((x for x in by_len if sec == x or sec.startswith(x + ' ')), '') or next((x for x in by_len if x in sec), '')
         book, section = b, p
+    text = ' '.join(str(r.get(k) or '') for k in ('title', 'desc', 'section', 'book'))
+    if subject == 'handcraft' and 'ויטראז' in text:          # stained glass is art, not a craft
+        subject, book = 'art', 'ויטראז׳'
     if subject == 'handcraft':
         book = next((h for h in HANDCRAFT if h in book or (h == 'עבודות עץ' and 'עץ' in book)), '')
+    if subject == 'art':
+        book = next((a for a in ART if a.rstrip('׳') in book or a.rstrip('׳') in text), '')
     if section == book and subject != 'torah':
         section = ''
     g = re.sub(r'[^א-ח]', '', str(meta.get('grade') or r.get('grade') or ''))[:1]
@@ -333,12 +343,32 @@ def move(meta_path, folder, meta):
     meta_path.unlink()
 
 
+def apply_fixes(items):
+    """Corrections to works already published, applied on every run (so they also survive later runs):
+    stained glass filed under crafts moves to art, and fixes.json in this repo holds manual corrections,
+    {"<id>": {"s": "art", "b": "...", "title": "...", "hidden": true, ...}}. Returns True if anything changed."""
+    path = PUB / 'fixes.json'
+    fixes = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
+    changed = False
+    for it in items:
+        want = dict(fixes.get(it.get('id'), {}))
+        if it.get('s') == 'handcraft' and 'ויטראז' in (it.get('title', '') + it.get('desc', '') + it.get('p', '')):
+            want = {'s': 'art', 'b': 'ויטראז׳', 'p': '', **want}
+        for k, v in want.items():
+            if it.get(k) != v:
+                it[k] = v; changed = True
+    return changed
+
+
 def main():
     if not KEY:
         sys.exit('GEMINI_KEY missing')
     lst_path = PUB / 'uploads.json'
     items = json.loads(lst_path.read_text(encoding='utf-8-sig')) if lst_path.exists() else []
     known = {it.get('hash') for it in items}
+    if apply_fixes(items):
+        lst_path.write_text(json.dumps(items, ensure_ascii=False, indent=0), encoding='utf-8')
+        print('applied corrections to published works', flush=True)
     (PUB / 'u').mkdir(exist_ok=True)
     LOG.extend(load_log())
     pending = sorted((INBOX / 'inbox').glob('*.json')) if (INBOX / 'inbox').exists() else []
@@ -384,11 +414,11 @@ def main():
             move(mp, 'rejected', meta); counts['rejected'] += 1
             print('  rejected', flush=True)
             continue
-        kind = r.get('kind') if r.get('kind') in ('board_lesson', 'board_atmosphere', 'watercolor', 'craft') else ''
-        forced = {'avira': 'board_atmosphere', 'watercolor': 'watercolor', 'handcraft': 'craft'}
+        kind = r.get('kind') if r.get('kind') in ('board_lesson', 'board_atmosphere', 'watercolor', 'art', 'craft') else ''
+        forced = {'avira': 'board_atmosphere', 'watercolor': 'watercolor', 'art': 'art', 'handcraft': 'craft'}
         if meta.get('subject') in forced:          # the teacher chose the section
             kind = forced[meta['subject']]
-        own = {'board_atmosphere': 'avira', 'watercolor': 'watercolor', 'craft': 'handcraft'}
+        own = {'board_atmosphere': 'avira', 'watercolor': 'watercolor', 'art': 'art', 'craft': 'handcraft'}
         if kind in own:
             c['subject'] = own[kind]
             if kind != 'craft':

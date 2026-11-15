@@ -215,10 +215,11 @@ const G = window.GALLERY || {subjects:[],items:[]};
 const HUES = {torah:['--sky','--lilac'],navi:['--lilac','--rose'],moadim:['--gold','--peach'],mishna:['--peach','--rose'],
   math:['--rose','--gold'],lang:['--sage','--sky'],handasa:['--mint','--lilac'],madaim:['--sage','--gold'],geo:['--sky','--sage'],
   crafts:['--peach','--sage'],eretz:['--gold','--sage'],avira:['--rose','--gold'],watercolor:['--sky','--rose'],
-  handcraft:['--peach','--gold'],other:['--lilac','--sky']};
+  handcraft:['--peach','--gold'],art:['--lilac','--rose'],other:['--lilac','--sky']};
 // sections added after data.js was built (uploads only): put them before "other"
 [{slug:'avira', name:'ציורי אווירה', blurb:'ציורי לוח ומסגרות לוח לתקופות ולחגים'},
  {slug:'watercolor', name:'צבעי מים', blurb:'ציורי צבעי מים רטוב על רטוב'},
+ {slug:'art', name:'אמנות', blurb:'פחם, פוינטליזם, קוביזם, ויטראז׳ ועוד'},
  {slug:'handcraft', name:'מלאכות', blurb:'עבודות עץ, צמר, חוטים, ומלאכות למועדים'}].forEach(x => {
   if (G.subjects.some(s => s.slug === x.slug)) return;
   const at = G.subjects.findIndex(s => s.slug === 'other');
@@ -226,6 +227,7 @@ const HUES = {torah:['--sky','--lilac'],navi:['--lilac','--rose'],moadim:['--gol
 });
 G.bookOrder = G.bookOrder || {};
 G.bookOrder.handcraft = ['עבודות עץ', 'צמר', 'חוטים', 'מועדים'];
+G.bookOrder.art = ['פוינטליזם', 'פחם', 'קוביזם', 'סימטריה', 'ויטראז׳', 'פסיפס', 'הדפס'];
 const GR = 'אבגדהוזח'.split('');
 const $ = s => document.querySelector(s);
 const app = $('#app');
