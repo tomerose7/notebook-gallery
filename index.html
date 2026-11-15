@@ -419,8 +419,9 @@ function renderHome(){
     <p class="lede">אוסף עבודות מחברת שצוירו בכיתות בית הספר לאורך השנים. בחרו מקצוע, ובתוכו חומש ופרשה, ספר או כיתה. לכל עבודה מצורף הסבר קצר והמקור שהיא מסכמת.</p>
     ${installBox()}
     <a class="install" href="upload.html"><img src="icon-192.png" alt=""><div><b>יש לכם עבודות מחברת? העלו אותן לגלריה</b><span>מצלמים בטלפון ובוחרים כמה תמונות שרוצים. החיתוך וההסבר נעשים לבד.</span></div><span class="btn">העלאה ←</span></a>
-    ${recentN?`<a class="install" href="#recent"><div><b>התווספו לאחרונה</b><span>${recentN} עבודות חדשות בחודש האחרון, מהחדשה לישנה.</span></div><span class="btn">לראות ←</span></a>`:''}
-    <nav class="subjects" aria-label="מקצועות">${cards}</nav>
+    <nav class="subjects" aria-label="מקצועות">${cards}${recentN?`<a class="subj" href="#recent" style="--c1:var(--gold);--c2:var(--sky)">
+      <span class="wash"></span><span class="count">${recentN} בחודש האחרון</span>
+      <h2>התווספו לאחרונה</h2><p>העבודות החדשות בגלריה, מהחדשה לישנה</p></a>`:''}</nav>
     ${NB.length?`<a class="install" href="#notebooks"><div><b>מחברות שלמות (${NB.filter(n=>!n.loose).length})</b><span>לדפדף במחברת אחת מתחילתה ועד סופה, כפי שנכתבה בכיתה.</span></div><span class="btn">לפתוח ←</span></a>`:''}</div>`;
   document.title = 'גלריית עבודות מחברת';
   wireCards();

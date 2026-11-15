@@ -42,6 +42,7 @@ h1{font-family:var(--f-display);font-weight:400;font-size:2.4rem;line-height:1.1
 .pick span{color:var(--ink-soft);font-size:.95rem}
 .pick input{position:absolute;opacity:0;width:1px;height:1px}
 .pick:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+.pick.drag{border-style:solid;border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--paper-2));transform:scale(1.02);transition:transform .15s}
 fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 legend{padding:0;margin-bottom:8px;font-size:.95rem;color:var(--ink-soft)}
 .fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -117,8 +118,8 @@ const API = 'https://script.google.com/macros/s/AKfycbwb1yTV8isNc5aA0GVBdqhJKB5u
 const $ = s => document.querySelector(s);
 let queue = [], running = false;
 
-$('#files').addEventListener('change', e => {
-  const fresh = [...e.target.files].filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|heic|webp)$/i.test(f.name));
+function addFiles(files){
+  const fresh = [...files].filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|heic|webp)$/i.test(f.name));
   fresh.forEach(f => {
     const li = document.createElement('li');
     li.innerHTML = '<img alt=""><div class="t"><b>ממתינה להעלאה</b><small></small></div>';
@@ -126,8 +127,21 @@ $('#files').addEventListener('change', e => {
     $('#list').appendChild(li);
     queue.push({file: f, li, done: false});
   });
-  e.target.value = '';
   refresh();
+}
+$('#files').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+
+/* on a computer: drop photos anywhere on the page (the box lights up while dragging) */
+if (matchMedia('(pointer:fine)').matches) $('#picked').textContent = 'או לגרור לכאן תמונות מהמחשב';
+let dragDepth = 0;
+const hasFiles = e => [...(e.dataTransfer && e.dataTransfer.types || [])].includes('Files');
+addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; $('#pick').classList.add('drag'); });
+addEventListener('dragover', e => { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; $('#pick').classList.remove('drag'); } });
+addEventListener('drop', e => {
+  if (!hasFiles(e)) return;
+  e.preventDefault(); dragDepth = 0; $('#pick').classList.remove('drag');
+  addFiles(e.dataTransfer.files);
 });
 
 function refresh(){
