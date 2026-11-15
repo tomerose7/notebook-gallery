@@ -214,7 +214,11 @@ footer{color:var(--ink-soft);font-size:.88rem;display:flex;flex-wrap:wrap;gap:6p
 const G = window.GALLERY || {subjects:[],items:[]};
 const HUES = {torah:['--sky','--lilac'],navi:['--lilac','--rose'],moadim:['--gold','--peach'],mishna:['--peach','--rose'],
   math:['--rose','--gold'],lang:['--sage','--sky'],handasa:['--mint','--lilac'],madaim:['--sage','--gold'],geo:['--sky','--sage'],
-  crafts:['--peach','--sage'],eretz:['--gold','--sage'],other:['--lilac','--sky']};
+  crafts:['--peach','--sage'],eretz:['--gold','--sage'],avira:['--rose','--gold'],other:['--lilac','--sky']};
+if (!G.subjects.some(s => s.slug === 'avira')) {
+  const at = G.subjects.findIndex(s => s.slug === 'other');
+  G.subjects.splice(at < 0 ? G.subjects.length : at, 0, {slug:'avira', name:'ציורי אווירה', blurb:'ציורי לוח ומסגרות לוח לתקופות ולחגים'});
+}
 const GR = 'אבגדהוזח'.split('');
 const $ = s => document.querySelector(s);
 const app = $('#app');

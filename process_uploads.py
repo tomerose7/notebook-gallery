@@ -24,7 +24,7 @@ DEADLINE = time.time() + 45 * 60
 
 SUBJECTS = {
     'torah': 'תורה', 'navi': 'נביא', 'moadim': 'מועדים', 'mishna': 'משנה', 'math': 'חשבון', 'lang': 'שפה',
-    'handasa': 'הנדסה', 'madaim': 'מדעים', 'geo': 'גיאוגרפיה', 'crafts': 'בעלי מלאכה', 'eretz': 'ארץ ישראל', 'other': 'עוד עבודות'}
+    'handasa': 'הנדסה', 'madaim': 'מדעים', 'geo': 'גיאוגרפיה', 'crafts': 'בעלי מלאכה', 'eretz': 'ארץ ישראל', 'avira': 'ציורי אווירה', 'other': 'עוד עבודות'}
 PARASHOT = {
     'בראשית': ['בראשית', 'נח', 'לך לך', 'וירא', 'חיי שרה', 'תולדות', 'ויצא', 'וישלח', 'וישב', 'מקץ', 'ויגש', 'ויחי'],
     'שמות': ['שמות', 'וארא', 'בא', 'בשלח', 'יתרו', 'משפטים', 'תרומה', 'תצוה', 'כי תשא', 'ויקהל', 'פקודי'],
@@ -43,6 +43,7 @@ math = חשבון. book = אחד הקיימים אם מתאים: חוכמת המ
 lang = שפה (אותיות, קריאה וכתיבה, דקדוק, שירים וטקסטים). book = אותיות / קריאה ראשונה / דקדוק / חיבור, או אחר קצר.
 handasa = הנדסה (רישום צורות, גאומטריה). madaim = מדעים (טבע, בעלי חיים, צמחים, גוף האדם, פיזיקה).
 geo = גיאוגרפיה (מפות, נופים). crafts = בעלי מלאכה. eretz = ארץ ישראל (שבעת המינים, חקלאות).
+avira = ציורי אווירה: ציור לוח שלם או מסגרת לוח שנותנים אווירה לתקופה או לחג (לא סיכום של שיעור). book = החג או עונת השנה (למשל פורים / חנוכה / סתיו / אביב), section ריק.
 other = רק אם באמת לא מתאים לאף מקצוע.
 שכבה (grade): אות אחת מ-א עד ח, או ריק אם לא ידוע."""
 
@@ -56,6 +57,7 @@ GATE = {
     'type': 'OBJECT',
     'properties': {
         'is_notebook_work': {'type': 'BOOLEAN'},
+        'kind': {'type': 'STRING', 'enum': ['notebook', 'board_lesson', 'board_atmosphere', 'none']},
         'reason': {'type': 'STRING'},
         'box': {'type': 'ARRAY', 'items': {'type': 'INTEGER'}},
         'rotate': {'type': 'INTEGER'},
@@ -73,17 +75,24 @@ CATALOG = {
 
 GATE_PROMPT = (
     'התמונה צולמה בטלפון עבור גלריה של עבודות מחברת (מחברות תקופה בגישה הוולדורפית) בבית ספר.\n'
-    'בדוק אם זו עבודת מחברת: עמוד (או שני עמודים) ממחברת של תלמיד, עם ציור, כתב, תרגילים או רישום צורות. '
-    'תמונה של משהו אחר (אנשים, נוף, צילום מסך, מסמך או דף עבודה מודפס, מחברת ריקה, תמונה מטושטשת) אינה עבודת מחברת: '
-    'is_notebook_work=false, reason=משפט קצר בעברית מה רואים, ושאר השדות ריקים.\n'
-    'אם זו עבודת מחברת:\n'
-    'box: מלבן העבודה עצמה (הדף או הדפים, בלי השולחן והרקע), [ymin,xmin,ymax,xmax] בסקלה 0–1000 של התמונה כפי שהיא.\n'
+    'הגלריה מקבלת שלושה סוגים (kind):\n'
+    'notebook: עמוד (או שני עמודים) ממחברת של תלמיד, עם ציור, כתב, תרגילים או רישום צורות.\n'
+    'board_lesson: ציור גיר של מורה על לוח הכיתה שמסכם שיעור ומשמש דוגמה לעבודת מחברת (ציור עם כותרת, פסוק, תרגיל וכדומה).\n'
+    'board_atmosphere: ציור לוח שלם או מסגרת מצוירת סביב הלוח, שנותנים אווירה לתקופה או לחג (למשל מסגרת של פורים).\n'
+    'כל דבר אחר (אנשים, נוף, צילום מסך, מסמך או דף עבודה מודפס, מחברת או לוח ריקים, תמונה מטושטשת) אינו מתאים: '
+    'kind=none, is_notebook_work=false, reason=משפט קצר בעברית מה רואים, ושאר השדות ריקים.\n'
+    'אם זה אחד משלושת הסוגים: is_notebook_work=true, ו:\n'
+    'box: מלבן העבודה עצמה (הדף או הדפים, או הלוח, בלי השולחן, הקיר והרקע), [ymin,xmin,ymax,xmax] בסקלה 0–1000 של התמונה כפי שהיא.\n'
     'rotate: בכמה מעלות עם כיוון השעון לסובב את התמונה כדי שהכתב והציור יעמדו ישר (0, 90, 180 או 270). שים לב לכיוון הכתב העברי.\n'
     'names: מלבנים של שמות תלמידים שכתובים בעבודה, באותה סקלה. רשימה ריקה אם אין.')
 
 
-def catalog_prompt(meta):
+def catalog_prompt(meta, kind=''):
     hints = []
+    if kind == 'board_lesson':
+        hints.append('זה ציור לוח של המורה שמסכם שיעור. בתיאור לכתוב "ציור לוח". המקצוע לפי תוכן השיעור (לא avira).')
+    if kind == 'board_atmosphere':
+        hints.append('זה ציור אווירה על הלוח (או מסגרת לוח) לתקופה או לחג: subject=avira, book=החג או העונה.')
     if meta.get('subject') in SUBJECTS:
         hints.append(f"המקצוע (נקבע בידי המורה, להשתמש בו): {meta['subject']} = {SUBJECTS[meta['subject']]}")
     if meta.get('topic'):
@@ -303,7 +312,7 @@ def main():
                 # pass 2 on the cropped, upright image: reading the child's handwriting goes much better this way
                 out = finish(im, r)
                 upright, _ = jpeg(out, 85, 1400)
-                c = gemini([{'text': catalog_prompt(meta)}, {'inline_data': {'mime_type': 'image/jpeg', 'data': b64(upright)}}], CATALOG)
+                c = gemini([{'text': catalog_prompt(meta, r.get('kind'))},{'inline_data': {'mime_type': 'image/jpeg', 'data': b64(upright)}}], CATALOG)
         except QuotaDone:
             print('free daily Gemini quota used up; the rest waits for a later run', flush=True)
             break
@@ -322,7 +331,16 @@ def main():
             move(mp, 'rejected', meta); counts['rejected'] += 1
             print('  rejected', flush=True)
             continue
+        kind = r.get('kind') if r.get('kind') in ('board_lesson', 'board_atmosphere') else ''
+        if meta.get('subject') == 'avira':
+            kind = 'board_atmosphere'
+        if kind == 'board_atmosphere':
+            c['subject'] = 'avira'; c['section'] = ''
+        elif c.get('subject') == 'avira':
+            c['subject'] = ''
         cat = normalize(c, meta)
+        if kind:
+            cat['k'] = 'board'
 
         uid = 'u' + h[:12]
         full, (w, hh) = jpeg(out, 86, 1600)
