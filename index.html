@@ -214,11 +214,18 @@ footer{color:var(--ink-soft);font-size:.88rem;display:flex;flex-wrap:wrap;gap:6p
 const G = window.GALLERY || {subjects:[],items:[]};
 const HUES = {torah:['--sky','--lilac'],navi:['--lilac','--rose'],moadim:['--gold','--peach'],mishna:['--peach','--rose'],
   math:['--rose','--gold'],lang:['--sage','--sky'],handasa:['--mint','--lilac'],madaim:['--sage','--gold'],geo:['--sky','--sage'],
-  crafts:['--peach','--sage'],eretz:['--gold','--sage'],avira:['--rose','--gold'],other:['--lilac','--sky']};
-if (!G.subjects.some(s => s.slug === 'avira')) {
+  crafts:['--peach','--sage'],eretz:['--gold','--sage'],avira:['--rose','--gold'],watercolor:['--sky','--rose'],
+  handcraft:['--peach','--gold'],other:['--lilac','--sky']};
+// sections added after data.js was built (uploads only): put them before "other"
+[{slug:'avira', name:'ציורי אווירה', blurb:'ציורי לוח ומסגרות לוח לתקופות ולחגים'},
+ {slug:'watercolor', name:'צבעי מים', blurb:'ציורי צבעי מים רטוב על רטוב'},
+ {slug:'handcraft', name:'מלאכות', blurb:'עבודות עץ, צמר, חוטים, ומלאכות למועדים'}].forEach(x => {
+  if (G.subjects.some(s => s.slug === x.slug)) return;
   const at = G.subjects.findIndex(s => s.slug === 'other');
-  G.subjects.splice(at < 0 ? G.subjects.length : at, 0, {slug:'avira', name:'ציורי אווירה', blurb:'ציורי לוח ומסגרות לוח לתקופות ולחגים'});
-}
+  G.subjects.splice(at < 0 ? G.subjects.length : at, 0, x);
+});
+G.bookOrder = G.bookOrder || {};
+G.bookOrder.handcraft = ['עבודות עץ', 'צמר', 'חוטים', 'מועדים'];
 const GR = 'אבגדהוזח'.split('');
 const $ = s => document.querySelector(s);
 const app = $('#app');
@@ -299,6 +306,7 @@ function parse(){
   const nbm = location.hash.match(/^#nb-([a-z0-9]+)$/);
   if (nbm && nbById[nbm[1]]) return {view:'nb', id:nbm[1]};
   if (location.hash === '#notebooks') return {view:'nblist'};
+  if (location.hash === '#recent') return {view:'recent'};
   const m = location.hash.slice(1).match(/^([a-z]+)(?:-b(\d+))?(?:-p(\d+))?(?:-g(\d+))?$/);
   if (!m || !bySubj[m[1]]) return {view:'home'};
   const n = v => v!=null ? +v : null;
@@ -317,6 +325,7 @@ function render(){
   const r = parse();
   if (r.view==='nb') return renderNotebook(r.id);
   if (r.view==='nblist') return renderNotebookList();
+  if (r.view==='recent') return renderRecent();
   r.view==='home' ? renderHome() : renderSubject(r);
 }
 
@@ -373,8 +382,29 @@ function renderNotebook(id){
   wireCards();
 }
 
+/* recently added: uploads carry their upload time t ("2026-11-15 20:22"); newest first */
+const RECENT_MAX = 60;
+// (in the original catalog t is the thumbnail's place in a pack, an array; only uploads have a time string)
+const upTime = i => typeof i.t === 'string' ? i.t : '';
+const recentList = () => G.items.filter(upTime).sort((a,b) => a.t < b.t ? 1 : a.t > b.t ? -1 : 0).slice(0, RECENT_MAX);
+const daysOld = t => (Date.now() - new Date(t.replace(' ', 'T') + ':00+02:00')) / 864e5;
+const whenLabel = t => { const d = daysOld(t); return d < 1 ? 'היום' : d < 2 ? 'אתמול' : `${+t.slice(8,10)}/${+t.slice(5,7)}`; };
+function renderRecent(){
+  const list = recentList();
+  current = list;
+  app.innerHTML = `<div class="stack">
+    <nav class="crumbs" aria-label="ניווט"><a href="#">כל המקצועות</a><span>›</span><span>התווספו לאחרונה</span></nav>
+    <div class="subj-head"><h2>התווספו לאחרונה</h2><p>העבודות האחרונות שהועלו לגלריה, מהחדשה לישנה.</p></div>
+    <p class="count-line">${list.length} עבודות</p>
+    <div class="grid">${list.map(it => { const S = G.subjects.find(x => x.slug === it.s);
+      return card(it, whenLabel(it.t) + (S ? ' · ' + S.name : '')); }).join('')}</div></div>`;
+  document.title = 'התווספו לאחרונה · גלריית עבודות מחברת';
+  wireCards();
+}
+
 function renderHome(){
   current = [];
+  const recentN = G.items.filter(i => upTime(i) && daysOld(i.t) < 30).length;
   const cards = G.subjects.map(s => {
     const n = bySubj[s.slug].length;
     if (!n) return '';
@@ -387,6 +417,7 @@ function renderHome(){
     <p class="lede">אוסף עבודות מחברת שצוירו בכיתות בית הספר לאורך השנים. בחרו מקצוע, ובתוכו חומש ופרשה, ספר או כיתה. לכל עבודה מצורף הסבר קצר והמקור שהיא מסכמת.</p>
     ${installBox()}
     <a class="install" href="upload.html"><img src="icon-192.png" alt=""><div><b>יש לכם עבודות מחברת? העלו אותן לגלריה</b><span>מצלמים בטלפון ובוחרים כמה תמונות שרוצים. החיתוך וההסבר נעשים לבד.</span></div><span class="btn">העלאה ←</span></a>
+    ${recentN?`<a class="install" href="#recent"><div><b>התווספו לאחרונה</b><span>${recentN} עבודות חדשות בחודש האחרון, מהחדשה לישנה.</span></div><span class="btn">לראות ←</span></a>`:''}
     <nav class="subjects" aria-label="מקצועות">${cards}</nav>
     ${NB.length?`<a class="install" href="#notebooks"><div><b>מחברות שלמות (${NB.filter(n=>!n.loose).length})</b><span>לדפדף במחברת אחת מתחילתה ועד סופה, כפי שנכתבה בכיתה.</span></div><span class="btn">לפתוח ←</span></a>`:''}</div>`;
   document.title = 'גלריית עבודות מחברת';

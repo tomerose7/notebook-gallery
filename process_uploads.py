@@ -24,7 +24,9 @@ DEADLINE = time.time() + 45 * 60
 
 SUBJECTS = {
     'torah': 'תורה', 'navi': 'נביא', 'moadim': 'מועדים', 'mishna': 'משנה', 'math': 'חשבון', 'lang': 'שפה',
-    'handasa': 'הנדסה', 'madaim': 'מדעים', 'geo': 'גיאוגרפיה', 'crafts': 'בעלי מלאכה', 'eretz': 'ארץ ישראל', 'avira': 'ציורי אווירה', 'other': 'עוד עבודות'}
+    'handasa': 'הנדסה', 'madaim': 'מדעים', 'geo': 'גיאוגרפיה', 'crafts': 'בעלי מלאכה', 'eretz': 'ארץ ישראל', 'avira': 'ציורי אווירה', 'watercolor': 'צבעי מים', 'handcraft': 'מלאכות',
+    'other': 'עוד עבודות'}
+HANDCRAFT = ['עבודות עץ', 'צמר', 'חוטים', 'מועדים']
 PARASHOT = {
     'בראשית': ['בראשית', 'נח', 'לך לך', 'וירא', 'חיי שרה', 'תולדות', 'ויצא', 'וישלח', 'וישב', 'מקץ', 'ויגש', 'ויחי'],
     'שמות': ['שמות', 'וארא', 'בא', 'בשלח', 'יתרו', 'משפטים', 'תרומה', 'תצוה', 'כי תשא', 'ויקהל', 'פקודי'],
@@ -44,6 +46,8 @@ lang = שפה (אותיות, קריאה וכתיבה, דקדוק, שירים ו�
 handasa = הנדסה (רישום צורות, גאומטריה). madaim = מדעים (טבע, בעלי חיים, צמחים, גוף האדם, פיזיקה).
 geo = גיאוגרפיה (מפות, נופים). crafts = בעלי מלאכה. eretz = ארץ ישראל (שבעת המינים, חקלאות).
 avira = ציורי אווירה: ציור לוח שלם או מסגרת לוח שנותנים אווירה לתקופה או לחג (לא סיכום של שיעור). book = החג או עונת השנה (למשל פורים / חנוכה / סתיו / אביב), section ריק.
+watercolor = צבעי מים: ציור צבעי מים (רטוב על רטוב) על דף נפרד, לא בתוך מחברת. book = הנושא או העונה בקצרה (למשל סתיו / ים / צבעים), או ריק.
+handcraft = מלאכות: חפץ שהתלמידים הכינו בידיים. book = אחד בדיוק מ: עבודות עץ / צמר / חוטים / מועדים (מלאכה לחג, למשל חנוכייה או רעשן). section = מה החפץ, בקצרה.
 other = רק אם באמת לא מתאים לאף מקצוע.
 שכבה (grade): אות אחת מ-א עד ח, או ריק אם לא ידוע."""
 
@@ -57,7 +61,7 @@ GATE = {
     'type': 'OBJECT',
     'properties': {
         'is_notebook_work': {'type': 'BOOLEAN'},
-        'kind': {'type': 'STRING', 'enum': ['notebook', 'board_lesson', 'board_atmosphere', 'none']},
+        'kind': {'type': 'STRING', 'enum': ['notebook', 'board_lesson', 'board_atmosphere', 'watercolor', 'craft', 'none']},
         'reason': {'type': 'STRING'},
         'box': {'type': 'ARRAY', 'items': {'type': 'INTEGER'}},
         'rotate': {'type': 'INTEGER'},
@@ -75,14 +79,17 @@ CATALOG = {
 
 GATE_PROMPT = (
     'התמונה צולמה בטלפון עבור גלריה של עבודות מחברת (מחברות תקופה בגישה הוולדורפית) בבית ספר.\n'
-    'הגלריה מקבלת שלושה סוגים (kind):\n'
-    'notebook: עמוד (או שני עמודים) ממחברת של תלמיד, עם ציור, כתב, תרגילים או רישום צורות.\n'
+    'הגלריה מקבלת חמישה סוגים (kind):\n'
+    'notebook: עמוד (או שני עמודים) ממחברת של תלמיד, עם ציור, כתב, תרגילים או רישום צורות. גם עמוד מחברת שצויר בצבעי מים הוא notebook.\n'
     'board_lesson: ציור גיר של מורה על לוח הכיתה שמסכם שיעור ומשמש דוגמה לעבודת מחברת (ציור עם כותרת, פסוק, תרגיל וכדומה).\n'
     'board_atmosphere: ציור לוח שלם או מסגרת מצוירת סביב הלוח, שנותנים אווירה לתקופה או לחג (למשל מסגרת של פורים).\n'
-    'כל דבר אחר (אנשים, נוף, צילום מסך, מסמך או דף עבודה מודפס, מחברת או לוח ריקים, תמונה מטושטשת) אינו מתאים: '
+    'watercolor: ציור צבעי מים (רטוב על רטוב) על דף נפרד, לא בתוך מחברת, בדרך כלל בלי כתב.\n'
+    'craft: חפץ שתלמידים הכינו בידיים (עבודת עץ, צמר, חוטים, מלאכה לחג), מצולם בלי אנשים.\n'
+    'אם רואים בתמונה פנים של ילד או של אדם, היא לא מתאימה בשום מקרה. '
+    'כל דבר אחר (אנשים, נוף, צילום מסך, מסמך או דף עבודה מודפס, מחברת או לוח ריקים, תמונה מטושטשת, תמונה מהאינטרנט) אינו מתאים: '
     'kind=none, is_notebook_work=false, reason=משפט קצר בעברית מה רואים, ושאר השדות ריקים.\n'
-    'אם זה אחד משלושת הסוגים: is_notebook_work=true, ו:\n'
-    'box: מלבן העבודה עצמה (הדף או הדפים, או הלוח, בלי השולחן, הקיר והרקע), [ymin,xmin,ymax,xmax] בסקלה 0–1000 של התמונה כפי שהיא.\n'
+    'אם זה אחד מחמשת הסוגים: is_notebook_work=true, ו:\n'
+    'box: מלבן העבודה עצמה (הדף או הדפים, הלוח, או החפץ, בלי השולחן, הקיר והרקע), [ymin,xmin,ymax,xmax] בסקלה 0–1000 של התמונה כפי שהיא.\n'
     'rotate: בכמה מעלות עם כיוון השעון לסובב את התמונה כדי שהכתב והציור יעמדו ישר (0, 90, 180 או 270). שים לב לכיוון הכתב העברי.\n'
     'names: מלבנים של שמות תלמידים שכתובים בעבודה, באותה סקלה. רשימה ריקה אם אין.')
 
@@ -93,6 +100,10 @@ def catalog_prompt(meta, kind=''):
         hints.append('זה ציור לוח של המורה שמסכם שיעור. בתיאור לכתוב "ציור לוח". המקצוע לפי תוכן השיעור (לא avira).')
     if kind == 'board_atmosphere':
         hints.append('זה ציור אווירה על הלוח (או מסגרת לוח) לתקופה או לחג: subject=avira, book=החג או העונה.')
+    if kind == 'watercolor':
+        hints.append('זה ציור צבעי מים על דף נפרד: subject=watercolor.')
+    if kind == 'craft':
+        hints.append('זו מלאכת יד של תלמידים (חפץ, לא ציור): subject=handcraft, book אחד מ: ' + ' / '.join(HANDCRAFT) + '.')
     if meta.get('subject') in SUBJECTS:
         hints.append(f"המקצוע (נקבע בידי המורה, להשתמש בו): {meta['subject']} = {SUBJECTS[meta['subject']]}")
     if meta.get('topic'):
@@ -213,6 +224,8 @@ def normalize(r, meta):
         sec = re.sub(r'^פרשת\s+', '', section)
         p = next((x for x in by_len if sec == x or sec.startswith(x + ' ')), '') or next((x for x in by_len if x in sec), '')
         book, section = b, p
+    if subject == 'handcraft':
+        book = next((h for h in HANDCRAFT if h in book or (h == 'עבודות עץ' and 'עץ' in book)), '')
     if section == book and subject != 'torah':
         section = ''
     g = re.sub(r'[^א-ח]', '', str(meta.get('grade') or r.get('grade') or ''))[:1]
@@ -369,15 +382,19 @@ def main():
             move(mp, 'rejected', meta); counts['rejected'] += 1
             print('  rejected', flush=True)
             continue
-        kind = r.get('kind') if r.get('kind') in ('board_lesson', 'board_atmosphere') else ''
-        if meta.get('subject') == 'avira':
-            kind = 'board_atmosphere'
-        if kind == 'board_atmosphere':
-            c['subject'] = 'avira'; c['section'] = ''
-        elif c.get('subject') == 'avira':
+        kind = r.get('kind') if r.get('kind') in ('board_lesson', 'board_atmosphere', 'watercolor', 'craft') else ''
+        forced = {'avira': 'board_atmosphere', 'watercolor': 'watercolor', 'handcraft': 'craft'}
+        if meta.get('subject') in forced:          # the teacher chose the section
+            kind = forced[meta['subject']]
+        own = {'board_atmosphere': 'avira', 'watercolor': 'watercolor', 'craft': 'handcraft'}
+        if kind in own:
+            c['subject'] = own[kind]
+            if kind != 'craft':
+                c['section'] = ''
+        elif c.get('subject') in own.values():     # these sections only take their own kind
             c['subject'] = ''
         cat = normalize(c, meta)
-        if kind:
+        if kind in ('board_lesson', 'board_atmosphere'):
             cat['k'] = 'board'
 
         uid = 'u' + h[:12]
