@@ -76,7 +76,8 @@ CATALOG = {
         'text': {'type': 'STRING', 'description': 'המילים שכתובות בעבודה, כפי שהן'},
         'subject': {'type': 'STRING', 'description': 'אחד מ: ' + ', '.join(SUBJECTS)},
         'book': {'type': 'STRING'}, 'section': {'type': 'STRING'}, 'grade': {'type': 'STRING'},
-        'title': {'type': 'STRING'}, 'desc': {'type': 'STRING'}, 'ref': {'type': 'STRING'}},
+        'title': {'type': 'STRING'}, 'desc': {'type': 'STRING'}, 'ref': {'type': 'STRING'},
+        'tags': {'type': 'ARRAY', 'items': {'type': 'STRING'}}},
     'required': ['text', 'subject', 'title', 'desc']}
 
 GATE_PROMPT = (
@@ -125,6 +126,8 @@ def catalog_prompt(meta, kind=''):
         'desc: משפט או שניים שמתארים מה רואים בציור ובכתוב, בעברית פשוטה ומדויקת. לא להמציא.\n'
         'ref: מקור הפסוק או הקטע (למשל "בראשית ו, יד"), רק אם המילים הכתובות מזוהות בביטחון. אחרת ריק.\n'
         'subject/book/section/grade: לפי הרשימה למטה, כל שדה רק הערך עצמו. הפרשה נקבעת לפי מקור הפסוק. אם לא בטוח, ריק.\n'
+        'tags: 0–4 תגיות קצרות בעברית (מילה או שתיים, בלי #) רק למקצועות או לנושאים נוספים שהעבודה שייכת אליהם באמת, '
+        'מעבר למקצוע הראשי. למשל ציור של חנוכייה בשיעור חשבון: ["חנוכה", "מועדים"]. עדיף ריק מתגית מאולצת.\n'
         'לא לציין שם של תלמיד בשום שדה. כל שדה טקסט בעברית בלבד, בלי הערות.\n'
         + (('פרטים שמילא המורה:\n' + '\n'.join(hints) + '\n') if hints else 'המורה לא מילא פרטים: קבע לפי תוכן העבודה.\n')
         + TAXONOMY + '\n' + STYLE)
@@ -241,8 +244,16 @@ def normalize(r, meta):
     if section == book and subject != 'torah':
         section = ''
     g = re.sub(r'[^א-ח]', '', str(meta.get('grade') or r.get('grade') or ''))[:1]
-    return {'s': subject, 'b': book, 'p': section, 'g': g,
-            'title': short(r.get('title'), 80), 'desc': short(r.get('desc'), 420), 'ref': short(r.get('ref'), 40)}
+    out = {'s': subject, 'b': book, 'p': section, 'g': g,
+           'title': short(r.get('title'), 80), 'desc': short(r.get('desc'), 420), 'ref': short(r.get('ref'), 40)}
+    tags = []
+    for t in r.get('tags') or []:
+        t = short(str(t).lstrip('#'), 24)
+        if t and t not in tags and t != SUBJECTS.get(subject):
+            tags.append(t)
+    if tags:
+        out['tags'] = tags[:6]
+    return out
 
 
 # ---------- images ----------

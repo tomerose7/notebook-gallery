@@ -148,6 +148,8 @@ dialog.edd::backdrop{background:color-mix(in srgb,var(--paper) 70%,transparent);
 .edd .msg{margin:0;font-size:.9rem;color:var(--ink-soft)}
 .edd .msg.bad{color:#b4533f}
 @media (max-width:420px){.edd .two{grid-template-columns:1fr}}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.chip.tag{font-size:.85rem;padding:3px 10px;text-decoration:none}
 .empty-note{padding:28px;border:1px dashed var(--line);border-radius:6px;color:var(--ink-soft);text-align:center}
 .count-line{color:var(--ink-soft);font-size:.95rem;margin:0}
 
@@ -217,6 +219,7 @@ footer{color:var(--ink-soft);font-size:.88rem;display:flex;flex-wrap:wrap;gap:6p
       <p id="lb-desc"></p>
       <p class="ref" id="lb-ref"></p>
       <p class="muted" id="lb-grade"></p>
+      <div class="tags" id="lb-tags"></div>
       <div class="lb-nav">
         <button class="btn" id="lb-prev" type="button">→ הקודמת</button>
         <button class="btn" id="lb-next" type="button">הבאה ←</button>
@@ -240,6 +243,9 @@ footer{color:var(--ink-soft);font-size:.88rem;display:flex;flex-wrap:wrap;gap:6p
     <datalist id="ed-books"></datalist>
     <label>כותרת<input id="ed-title" maxlength="80" autocomplete="off"></label>
     <label>תיאור<textarea id="ed-desc" maxlength="420"></textarea></label>
+    <label>תגיות (מופרדות בפסיק, למשל: פורים, חשבון, ארץ ישראל)<input id="ed-tags" list="ed-taglist" maxlength="200" autocomplete="off"
+      placeholder="העבודה תופיע גם במקצועות ובנושאים האלה"></label>
+    <datalist id="ed-taglist"></datalist>
     <div class="acts">
       <button class="btn pri" id="ed-save" type="submit">שמירה</button>
       <button class="btn" id="ed-cancel" type="button">ביטול</button>
@@ -340,6 +346,23 @@ function where(it){
 }
 const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+/* hashtags: it.tags = ['פורים', 'חשבון', ...]. A work shows on its tag's page (#tag-<name>), and also inside a
+   subject when a tag is that subject's name or one of its topics (e.g. #מועדים, #חנוכה). */
+const tagsOf = it => Array.isArray(it.tags) ? it.tags : [];
+const tagHref = t => '#tag-' + encodeURIComponent(t);
+const tagChips = it => tagsOf(it).map(t => `<a class="chip tag" href="${tagHref(t)}">#${esc(t)}</a>`).join('');
+function renderTag(tag){
+  const list = G.items.filter(i => tagsOf(i).includes(tag));
+  current = list;
+  app.innerHTML = `<div class="stack">
+    <nav class="crumbs" aria-label="ניווט"><a href="#">כל המקצועות</a><span>›</span><span>#${esc(tag)}</span></nav>
+    <div class="subj-head"><h2>#${esc(tag)}</h2><p>כל העבודות שתויגו כך, מכל המקצועות.</p></div>
+    <p class="count-line">${list.length} עבודות</p>
+    ${list.length ? `<div class="grid">${list.map(i => card(i, where(i))).join('')}</div>` : '<div class="empty-note">עוד אין עבודות עם התגית הזו.</div>'}</div>`;
+  document.title = '#' + tag + ' · גלריית עבודות מחברת';
+  wireCards();
+}
+
 /* routing: #torah  #torah-b2  #torah-b2-p5  #math-g3  (indices into the sorted lists, ASCII-only hashes) */
 const NB = G.notebooks || [];
 const nbById = {}; NB.forEach(n => nbById[n.id] = n);
@@ -349,6 +372,7 @@ function parse(){
   if (nbm && nbById[nbm[1]]) return {view:'nb', id:nbm[1]};
   if (location.hash === '#notebooks') return {view:'nblist'};
   if (location.hash === '#recent') return {view:'recent'};
+  if (location.hash.startsWith('#tag-')) { try { return {view:'tag', tag: decodeURIComponent(location.hash.slice(5))}; } catch(e){} }
   const m = location.hash.slice(1).match(/^([a-z]+)(?:-b(\d+))?(?:-p(\d+))?(?:-g(\d+))?$/);
   if (!m || !bySubj[m[1]]) return {view:'home'};
   const n = v => v!=null ? +v : null;
@@ -368,6 +392,7 @@ function render(){
   if (r.view==='nb') return renderNotebook(r.id);
   if (r.view==='nblist') return renderNotebookList();
   if (r.view==='recent') return renderRecent();
+  if (r.view==='tag') return renderTag(r.tag);
   r.view==='home' ? renderHome() : renderSubject(r);
 }
 
@@ -485,7 +510,10 @@ function renderSubject(r){
   const secs = uniqOrdered(inBook.map(i=>i.p), book ? (G.secOrder||{})[book] : null);
   const sec = r.p!=null ? secs[r.p] : null;
   const list = inBook.filter(i => !sec || i.p===sec);
-  current = list;
+  // works from other subjects tagged with this subject's name (or, inside a topic, with the topic's name)
+  const want = sec ? [sec] : book ? [book] : [S.name, ...books];
+  const extra = G.items.filter(i => i.s !== r.s && (!grade || i.g === grade) && tagsOf(i).some(t => want.includes(t)));
+  current = list.concat(extra);
 
   const chip = (label,n,href,on) => `<a class="chip" href="${href}" aria-current="${on}">${esc(label)}${n!=null?` <span class="n">${n}</span>`:''}</a>`;
   let rows = '';
@@ -510,13 +538,15 @@ function renderSubject(r){
   const body = list.length ? groups.map(g => `<section class="group">${gh(g)?`<h3>${esc(gh(g))} <small>${g.items.length}</small></h3>`:''}
       <div class="grid">${g.items.map(i=>card(i)).join('')}</div></section>`).join('')
     : `<div class="empty-note">אין כאן עבודות בצירוף הזה. נסו לבחור כיתה או נושא אחר.</div>`;
+  const extraBody = extra.length ? `<section class="group"><h3>מופיעות גם כאן לפי תגיות <small>${extra.length}</small></h3>
+      <div class="grid">${extra.map(i => card(i, where(i))).join('')}</div></section>` : '';
 
   app.innerHTML = `<div class="stack">
     <nav class="crumbs" aria-label="ניווט"><a href="#">כל המקצועות</a><span>›</span><a href="#${r.s}">${esc(S.name)}</a>${book?`<span>›</span><span>${esc(bookLabel(r.s,book))}</span>`:''}${sec?`<span>›</span><span>${esc(secLabel(r.s,sec))}</span>`:''}</nav>
     <div class="subj-head"><h2>${esc(S.name)}</h2><p>${esc(S.blurb)}</p></div>
     ${rows?`<div class="filters">${rows}</div>`:''}
-    <p class="count-line">${list.length} עבודות</p>
-    <div class="groups">${body}</div></div>`;
+    <p class="count-line">${list.length} עבודות${extra.length ? ` ועוד ${extra.length} לפי תגיות` : ''}</p>
+    <div class="groups">${body}${extraBody}</div></div>`;
   document.title = S.name + ' · גלריית עבודות מחברת';
   wireCards();
 }
@@ -541,7 +571,8 @@ function wireCards(){
 /* ---------- edits by anyone (pencil): subject, topic, section, title, description. Never delete. ----------
    Saved through the upload service into fixes.json in the repo; every visitor's page applies it on load. */
 const EDIT_API = 'https://script.google.com/macros/s/AKfycbwb1yTV8isNc5aA0GVBdqhJKB5upmJ40MvbV3o-9bGlsxfWAKxZ4pLkTFl4bGmXqh-Xvg/exec';
-const FIX_KEYS = ['s','b','p','title','desc'];
+const FIX_KEYS = ['s','b','p','title','desc','tags'];
+const parseTags = s => [...new Set(String(s||'').split(/[,،\n]+|\s#/).map(t => t.replace(/^#/,'').replace(/\s+/g,' ').trim().slice(0,24)).filter(Boolean))].slice(0,10);
 let FIX = {};
 function fixItem(it){
   const f = FIX[it.id]; if (!f) return;
@@ -576,6 +607,10 @@ function openEdit(id){
   books(); $('#ed-s').onchange = books;
   $('#ed-b').value = it.b || ''; $('#ed-p').value = it.p || '';
   $('#ed-title').value = title(it); $('#ed-desc').value = it.desc || '';
+  $('#ed-tags').value = tagsOf(it).join(', ');
+  // suggestions: subject names, topics and tags already in use
+  const sugg = new Set([...G.subjects.map(s => s.name), ...G.items.flatMap(i => [i.b, ...tagsOf(i)])].filter(Boolean));
+  $('#ed-taglist').innerHTML = [...sugg].slice(0, 400).map(t => `<option value="${esc(t)}">`).join('');
   $('#ed-msg').textContent = 'השינוי יופיע אצל כולם תוך כמה דקות.'; $('#ed-msg').className = 'msg';
   $('#ed-save').disabled = false;
   edd.showModal();
@@ -585,8 +620,13 @@ $('#lb-edit').onclick = () => { const it = current[lbIx]; if (it) openEdit(it.id
 $('#ed-form').addEventListener('submit', async e => {
   e.preventDefault();
   const it = itemById[edId]; if (!it) return;
-  const want = {s: $('#ed-s').value, b: $('#ed-b').value.trim(), p: $('#ed-p').value.trim(), title: $('#ed-title').value.trim(), desc: $('#ed-desc').value.trim()};
-  const change = {}; FIX_KEYS.forEach(k => { if ((want[k] || '') !== ((k === 'title' ? title(it) : it[k]) || '')) change[k] = want[k]; });
+  const want = {s: $('#ed-s').value, b: $('#ed-b').value.trim(), p: $('#ed-p').value.trim(), title: $('#ed-title').value.trim(), desc: $('#ed-desc').value.trim(),
+                tags: parseTags($('#ed-tags').value)};
+  const change = {};
+  FIX_KEYS.forEach(k => {
+    if (k === 'tags') { if (want.tags.join('|') !== tagsOf(it).join('|')) change.tags = want.tags; return; }
+    if ((want[k] || '') !== ((k === 'title' ? title(it) : it[k]) || '')) change[k] = want[k];
+  });
   if (!Object.keys(change).length) { edd.close(); return; }
   $('#ed-save').disabled = true; $('#ed-msg').textContent = 'שומר…'; $('#ed-msg').className = 'msg';
   try {
@@ -607,7 +647,7 @@ $('#ed-form').addEventListener('submit', async e => {
 const norm = t => (t||'').replace(/[֑-ׇ"'״׳]/g,'').toLowerCase();
 function renderSearch(q){
   const words = norm(q).split(/\s+/).filter(Boolean);
-  const list = G.items.filter(i => { const hay = norm([title(i),i.desc,i.ref,where(i)].join(' ')); return words.every(w=>hay.includes(w)); });
+  const list = G.items.filter(i => { const hay = norm([title(i),i.desc,i.ref,where(i),tagsOf(i).join(' ')].join(' ')).replace(/#/g,''); return words.every(w=>hay.includes(w)); });
   current = list;
   app.innerHTML = `<div class="stack">
     <nav class="crumbs"><a href="#" id="clr">כל המקצועות</a><span>›</span><span>חיפוש</span></nav>
@@ -631,6 +671,7 @@ function showLB(){
   $('#lb-desc').className = it.desc ? '' : 'muted';
   $('#lb-ref').textContent = it.ref; $('#lb-ref').hidden = !it.ref;
   $('#lb-grade').textContent = gradeLabel(it.g); $('#lb-grade').hidden = !it.g;
+  $('#lb-tags').innerHTML = tagChips(it); $('#lb-tags').hidden = !tagsOf(it).length;
   const nb = nbById[it.n];
   $('#lb-nb').hidden = !nb || nb.loose;
   if (nb) { $('#lb-nb').href = '#nb-' + nb.id; $('#lb-nb').textContent = nb.name + ' · עמוד ' + it.pg + ' מתוך ' + nb.pages + ' ←'; }

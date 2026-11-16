@@ -1,7 +1,7 @@
 // Service worker: lets the gallery install as an app and reopen offline.
 // Page + data: network first (so updates show up), falling back to cache.
 // Image packs (t*/f*): cache first; each pack is cached the first time it is viewed.
-const VERSION = 'v12';
+const VERSION = 'v13';
 const SHELL = ['./', 'index.html', 'upload.html', 'data.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
