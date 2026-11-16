@@ -128,6 +128,26 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .card .cap{font-size:.93rem;line-height:1.35;display:flex;flex-direction:column;gap:2px;min-width:0}
 .card .cap b{font-weight:600}
 .card .cap span{color:var(--ink-soft);font-size:.83rem}
+.card .cap.row{flex-direction:row;align-items:flex-start;gap:6px}
+.card .capt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+button.ed{flex:none;width:30px;height:30px;display:grid;place-items:center;border:1px solid transparent;border-radius:50%;
+  background:none;color:var(--ink-soft);cursor:pointer;padding:0;opacity:.7}
+button.ed:hover,button.ed:focus-visible{opacity:1;border-color:var(--line);background:var(--paper-2);color:var(--accent)}
+button.ed svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+dialog.edd{border:0;border-radius:10px;padding:0;width:min(480px,calc(100% - 32px));background:var(--paper-2);color:var(--ink);box-shadow:var(--shadow)}
+dialog.edd::backdrop{background:color-mix(in srgb,var(--paper) 70%,transparent);backdrop-filter:blur(3px)}
+.edd form{display:flex;flex-direction:column;gap:12px;padding:20px}
+.edd h3{font-family:var(--f-display);font-weight:400;font-size:1.6rem;margin:0}
+.edd label{display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--ink-soft)}
+.edd input,.edd select,.edd textarea{font:inherit;font-size:1rem;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;min-width:0}
+.edd textarea{min-height:96px;resize:vertical}
+.edd .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.edd .acts{display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap;align-items:center}
+.edd .acts .btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.edd .msg{margin:0;font-size:.9rem;color:var(--ink-soft)}
+.edd .msg.bad{color:#b4533f}
+@media (max-width:420px){.edd .two{grid-template-columns:1fr}}
 .empty-note{padding:28px;border:1px dashed var(--line);border-radius:6px;color:var(--ink-soft);text-align:center}
 .count-line{color:var(--ink-soft);font-size:.95rem;margin:0}
 
@@ -200,12 +220,32 @@ footer{color:var(--ink-soft);font-size:.88rem;display:flex;flex-wrap:wrap;gap:6p
       <div class="lb-nav">
         <button class="btn" id="lb-prev" type="button">→ הקודמת</button>
         <button class="btn" id="lb-next" type="button">הבאה ←</button>
+        <button class="btn" id="lb-edit" type="button">✎ עריכה</button>
       </div>
       <p class="muted" id="lb-pos"></p>
       <a class="chip" id="lb-nb" href="#" hidden></a>
     </aside>
   </div>
   <button class="lb-close" id="lb-close" type="button" aria-label="סגירה">×</button>
+</dialog>
+
+<dialog class="edd" id="edd" aria-labelledby="ed-h">
+  <form id="ed-form" method="dialog">
+    <h3 id="ed-h">עריכת פרטי העבודה</h3>
+    <label>מקצוע<select id="ed-s"></select></label>
+    <div class="two">
+      <label>נושא / ספר / חומש<input id="ed-b" list="ed-books" maxlength="40" autocomplete="off"></label>
+      <label>פרק / פרשה / תת-נושא<input id="ed-p" maxlength="40" autocomplete="off"></label>
+    </div>
+    <datalist id="ed-books"></datalist>
+    <label>כותרת<input id="ed-title" maxlength="80" autocomplete="off"></label>
+    <label>תיאור<textarea id="ed-desc" maxlength="420"></textarea></label>
+    <div class="acts">
+      <button class="btn pri" id="ed-save" type="submit">שמירה</button>
+      <button class="btn" id="ed-cancel" type="button">ביטול</button>
+    </div>
+    <p class="msg" id="ed-msg">השינוי יופיע אצל כולם תוך כמה דקות.</p>
+  </form>
 </dialog>
 
 <script src="data.js"></script>
@@ -481,16 +521,88 @@ function renderSubject(r){
   wireCards();
 }
 
+const PENCIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>';
 function card(it, label){
   const sub = typeof label === 'string' ? label : it.desc ? it.desc.split(/[.:]/)[0] : where(it);
-  return `<button class="card" type="button" data-open="${it.id}">
+  return `<div class="card" role="button" tabindex="0" data-open="${it.id}">
     <div class="ph" style="aspect-ratio:${(it.w/it.h).toFixed(3)}"><img data-id="${it.id}" alt="${esc(title(it))}" width="${it.w}" height="${it.h}"></div>
-    <div class="cap"><b>${esc(title(it))}</b><span>${esc(sub)}</span></div></button>`;
+    <div class="cap row"><div class="capt"><b>${esc(title(it))}</b><span>${esc(sub)}</span></div>
+      <button class="ed" type="button" data-edit="${it.id}" aria-label="עריכת הפרטים של העבודה" title="עריכה">${PENCIL}</button></div></div>`;
 }
 function wireCards(){
   app.querySelectorAll('img[data-id]').forEach(img => io ? io.observe(img) : loadThumb(img));
-  app.querySelectorAll('[data-open]').forEach(b => b.addEventListener('click',()=>openLB(b.dataset.open)));
+  app.querySelectorAll('[data-open]').forEach(b => {
+    b.addEventListener('click', e => { if (!e.target.closest('[data-edit]')) openLB(b.dataset.open); });
+    b.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === b) { e.preventDefault(); openLB(b.dataset.open); } });
+  });
+  app.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openEdit(b.dataset.edit); }));
 }
+
+/* ---------- edits by anyone (pencil): subject, topic, section, title, description. Never delete. ----------
+   Saved through the upload service into fixes.json in the repo; every visitor's page applies it on load. */
+const EDIT_API = 'https://script.google.com/macros/s/AKfycbwb1yTV8isNc5aA0GVBdqhJKB5upmJ40MvbV3o-9bGlsxfWAKxZ4pLkTFl4bGmXqh-Xvg/exec';
+const FIX_KEYS = ['s','b','p','title','desc'];
+let FIX = {};
+function fixItem(it){
+  const f = FIX[it.id]; if (!f) return;
+  FIX_KEYS.forEach(k => { if (k in f && !(k === 's' && !bySubj[f.s])) it[k] = f[k]; });
+}
+function applyFixes(map){
+  Object.assign(FIX, map);
+  const touched = new Set();
+  Object.keys(map).forEach(id => {
+    const it = itemById[id]; if (!it) return;
+    const old = it.s; fixItem(it);
+    if (it.s !== old) { bySubj[old] = bySubj[old].filter(x => x !== it); bySubj[it.s].push(it); touched.add(it.s); }
+  });
+  touched.forEach(s => bySubj[s] = sortSubj(s, bySubj[s]));
+}
+// my own recent edits show right away, even before the shared copy updates (kept 30 minutes)
+function localFixes(){
+  try { const m = JSON.parse(localStorage.getItem('myFixes') || '{}'), out = {};
+    Object.keys(m).forEach(id => { if (Date.now() - m[id]._t < 18e5) out[id] = m[id]; });
+    return out; } catch(e){ return {}; }
+}
+function rememberFix(id, f){
+  try { const m = localFixes(); m[id] = Object.assign({}, f, {_t: Date.now()}); localStorage.setItem('myFixes', JSON.stringify(m)); } catch(e){}
+}
+
+const edd = $('#edd'); let edId = null;
+function openEdit(id){
+  const it = itemById[id]; if (!it) return;
+  edId = id;
+  $('#ed-s').innerHTML = G.subjects.map(s => `<option value="${s.slug}"${s.slug===it.s?' selected':''}>${esc(s.name)}</option>`).join('');
+  const books = () => $('#ed-books').innerHTML = [...new Set((bySubj[$('#ed-s').value]||[]).map(i=>i.b).filter(Boolean))].map(b=>`<option value="${esc(b)}">`).join('');
+  books(); $('#ed-s').onchange = books;
+  $('#ed-b').value = it.b || ''; $('#ed-p').value = it.p || '';
+  $('#ed-title').value = title(it); $('#ed-desc').value = it.desc || '';
+  $('#ed-msg').textContent = 'השינוי יופיע אצל כולם תוך כמה דקות.'; $('#ed-msg').className = 'msg';
+  $('#ed-save').disabled = false;
+  edd.showModal();
+}
+$('#ed-cancel').onclick = () => edd.close();
+$('#lb-edit').onclick = () => { const it = current[lbIx]; if (it) openEdit(it.id); };
+$('#ed-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const it = itemById[edId]; if (!it) return;
+  const want = {s: $('#ed-s').value, b: $('#ed-b').value.trim(), p: $('#ed-p').value.trim(), title: $('#ed-title').value.trim(), desc: $('#ed-desc').value.trim()};
+  const change = {}; FIX_KEYS.forEach(k => { if ((want[k] || '') !== ((k === 'title' ? title(it) : it[k]) || '')) change[k] = want[k]; });
+  if (!Object.keys(change).length) { edd.close(); return; }
+  $('#ed-save').disabled = true; $('#ed-msg').textContent = 'שומר…'; $('#ed-msg').className = 'msg';
+  try {
+    const r = await fetch(EDIT_API, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(Object.assign({op:'edit', id: edId}, change))});
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.reason || 'error');
+    rememberFix(edId, change);
+    applyFixes({[edId]: Object.assign({}, FIX[edId] || {}, change)});
+    edd.close();
+    if (lb.open) showLB(); else render();
+  } catch(err) {
+    $('#ed-save').disabled = false;
+    $('#ed-msg').textContent = 'השמירה לא הצליחה' + (err.message && err.message !== 'error' && !/fetch/i.test(err.message) ? ': ' + err.message : '. נסו שוב בעוד דקה.');
+    $('#ed-msg').className = 'msg bad';
+  }
+});
 
 const norm = t => (t||'').replace(/[֑-ׇ"'״׳]/g,'').toLowerCase();
 function renderSearch(q){
@@ -559,6 +671,7 @@ function addRemote(list){
   (list||[]).forEach(it => {
     if (!it || !it.id || !it.file || it.hidden || itemById[it.id] || !bySubj[it.s]) return;
     it.n = ''; it.pg = 0;
+    fixItem(it);
     G.items.push(it); itemById[it.id] = it; bySubj[it.s].push(it); added++;
   });
   if (!added) return false;
@@ -566,8 +679,16 @@ function addRemote(list){
   $('#stats').textContent = G.items.length + ' עבודות בגלריה';
   return true;
 }
+try { applyFixes(JSON.parse(localStorage.getItem('fixes') || '{}')); } catch(e){}
+applyFixes(localFixes());
 try { addRemote(JSON.parse(localStorage.getItem('uploads') || '[]')); } catch(e){}
 render();
+// shared edits (fixes.json, written by the edit service); then my own newer ones on top
+fetch(RAW + 'fixes.json?' + Math.floor(Date.now() / 6e4)).then(r => r.ok ? r.json() : {}).then(map => {
+  try { localStorage.setItem('fixes', JSON.stringify(map)); } catch(e){}
+  applyFixes(map); applyFixes(localFixes());
+  if (!lb.open && !edd.open) render();
+}).catch(()=>{});
 // the raw copy updates within minutes of a new upload; the Pages copy is the fallback
 fetch(RAW + 'uploads.json?' + Math.floor(Date.now() / 6e4)).then(r => r.ok ? r : fetch('uploads.json')).then(r => r.json()).then(list => {
   list = (list || []).filter(it => !it.hidden);

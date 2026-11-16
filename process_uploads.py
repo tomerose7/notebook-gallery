@@ -351,7 +351,7 @@ def apply_fixes(items):
     fixes = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
     changed = False
     for it in items:
-        want = dict(fixes.get(it.get('id'), {}))
+        want = {k: v for k, v in fixes.get(it.get('id'), {}).items() if not k.startswith('_')}   # _at = edit time
         if it.get('s') == 'handcraft' and 'ויטראז' in (it.get('title', '') + it.get('desc', '') + it.get('p', '')):
             want = {'s': 'art', 'b': 'ויטראז׳', 'p': '', **want}
         for k, v in want.items():

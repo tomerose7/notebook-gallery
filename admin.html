@@ -127,11 +127,12 @@ async function getJSON(url, opt){ const r = await fetch(url, opt); if (!r.ok) th
 async function load(){
   $('#when').textContent = 'טוען…';
   const bust = '?' + Date.now();
-  const [ups, log, runs, st] = await Promise.all([
+  const [ups, log, runs, st, fixes] = await Promise.all([
     getJSON(RAW + 'uploads.json' + bust).catch(() => getJSON('uploads.json' + bust).catch(() => [])),
     getJSON(RAW + 'log.json' + bust).catch(() => null),
     getJSON(RUNS).catch(() => null),
-    getJSON(API, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({op:'stats'})}).catch(() => null)
+    getJSON(API, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({op:'stats'})}).catch(() => null),
+    getJSON(RAW + 'fixes.json' + bust).catch(() => ({}))
   ]);
   const days = (st && st.days) || {};
   const byId = {}; ups.forEach(u => byId[u.id] = u);
@@ -143,6 +144,11 @@ async function load(){
   const runList = (runs && runs.workflow_runs) || [];
   runList.filter(r => r.conclusion === 'failure').forEach(r =>
     entries.push({when: ilTime(r.created_at), kind: 'runfail', url: r.html_url, num: r.run_number}));
+  // edits made by visitors with the pencil (fixes.json; each id keeps its latest edit time)
+  const catById = {}; G.items.forEach(i => catById[i.id] = i);
+  Object.keys(fixes || {}).forEach(id => { const f = fixes[id]; if (!f._at) return;
+    const base = byId[id] || catById[id];
+    entries.push({when: f._at, kind: 'edited', item: base ? Object.assign({}, base, f, {file: base.file}) : null, id, fix: f}); });
   entries = entries.filter(e => e.kind !== 'dup' && e.when).sort((a,b) => a.when < b.when ? 1 : -1);
 
   // ---- tiles ----
@@ -187,9 +193,9 @@ async function load(){
   $('#when').textContent = 'עודכן ' + new Date().toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
 }
 
-const KINDS = {accepted:['נכנסה','ok'], rejected:['לא נכנסה','bad'], failed:['תקלה','warn'], runfail:['תקלה בעיבוד','warn']};
+const KINDS = {accepted:['נכנסה','ok'], rejected:['לא נכנסה','bad'], failed:['תקלה','warn'], runfail:['תקלה בעיבוד','warn'], edited:['נערכה','warn']};
 function renderFilters(){
-  const opts = [['all','הכול'],['accepted','נכנסו'],['rejected','לא נכנסו'],['problems','תקלות']];
+  const opts = [['all','הכול'],['accepted','נכנסו'],['rejected','לא נכנסו'],['edited','עריכות'],['problems','תקלות']];
   $('#filters').innerHTML = opts.map(([k,l]) => `<button type="button" data-f="${k}" aria-pressed="${filter===k}">${l}</button>`).join('');
 }
 function renderLog(){
@@ -205,7 +211,7 @@ function renderLog(){
       html += `<div class="row"><span class="ic">⚠</span><div><b>ריצת עיבוד #${e.num} נכשלה</b><span>${time} · <a href="${esc(e.url)}">פרטים</a></span></div><span class="tag ${cls}">${label}</span></div>`;
     } else if (e.item) {
       const it = e.item;
-      html += `<div class="row"><img loading="lazy" src="${RAW}${esc(it.file)}_t.jpg" alt=""><div><b>${esc(it.title)}</b>
+      html += `<div class="row">${it.file ? `<img loading="lazy" src="${RAW}${esc(it.file)}_t.jpg" alt="">` : '<span class="ic">✎</span>'}<div><b>${esc(it.title)}</b>
         <span>${time} · ${esc(NAMES[it.s]||it.s)}${it.b?' · '+esc(it.b):''}${it.p?' · '+esc(it.p):''}${it.k==='board'?' · ציור לוח':''}${it.hidden?' · מוסתרת':''}</span></div><span class="tag ${cls}">${label}</span></div>`;
     } else {
       html += `<div class="row"><span class="ic">${e.kind==='rejected'?'✕':'⚠'}</span><div><b>${esc(e.why || (e.kind==='rejected'?'לא עבודת מחברת':'העיבוד נכשל'))}</b>
