@@ -348,7 +348,10 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 /* hashtags: it.tags = ['פורים', 'חשבון', ...]. A work shows on its tag's page (#tag-<name>), and also inside a
    subject when a tag is that subject's name or one of its topics (e.g. #מועדים, #חנוכה). */
-const tagsOf = it => Array.isArray(it.tags) ? it.tags : [];
+// tags set by hand (edit pencil, or given at upload) win; otherwise the suggested ones from autotags.json
+let AUTO = {};
+try { AUTO = JSON.parse(localStorage.getItem('autotags') || '{}'); } catch(e){}
+const tagsOf = it => Array.isArray(it.tags) ? it.tags : (AUTO[it.id] || []);
 const tagHref = t => '#tag-' + encodeURIComponent(t);
 const tagChips = it => tagsOf(it).map(t => `<a class="chip tag" href="${tagHref(t)}">#${esc(t)}</a>`).join('');
 function renderTag(tag){
@@ -724,6 +727,11 @@ try { applyFixes(JSON.parse(localStorage.getItem('fixes') || '{}')); } catch(e){
 applyFixes(localFixes());
 try { addRemote(JSON.parse(localStorage.getItem('uploads') || '[]')); } catch(e){}
 render();
+fetch(RAW + 'autotags.json?' + Math.floor(Date.now() / 6e4)).then(r => r.ok ? r.json() : {}).then(map => {
+  AUTO = map || {};
+  try { localStorage.setItem('autotags', JSON.stringify(AUTO)); } catch(e){}
+  if (!lb.open && !edd.open) render();
+}).catch(()=>{});
 // shared edits (fixes.json, written by the edit service); then my own newer ones on top
 fetch(RAW + 'fixes.json?' + Math.floor(Date.now() / 6e4)).then(r => r.ok ? r.json() : {}).then(map => {
   try { localStorage.setItem('fixes', JSON.stringify(map)); } catch(e){}

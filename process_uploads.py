@@ -354,6 +354,55 @@ def move(meta_path, folder, meta):
     meta_path.unlink()
 
 
+TAG_BATCH, TAG_CALLS = 40, 8      # works per Gemini call, calls per run
+
+TAG_SCHEMA = {'type': 'ARRAY', 'items': {'type': 'OBJECT', 'properties': {
+    'id': {'type': 'STRING'}, 'tags': {'type': 'ARRAY', 'items': {'type': 'STRING'}}}, 'required': ['id', 'tags']}}
+
+
+def backfill_tags(uploads):
+    """Suggest hashtags for works that have none, from their text only (subject, topic, title, description), a batch
+    per call. Results go to autotags.json ({"<id>": [tags]}; [] = looked at, nothing to add), which only this
+    script writes; the site uses them unless someone set tags by hand (fixes.json)."""
+    path = PUB / 'autotags.json'
+    auto = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
+    works = []
+    data = PUB / 'data.js'
+    if data.exists():
+        txt = data.read_text(encoding='utf-8-sig')
+        works += json.loads(txt[txt.index('{'):txt.rindex('}') + 1]).get('items', [])
+    works += [u for u in uploads if not u.get('hidden')]
+    todo = [w for w in works if w.get('id') and w['id'] not in auto and not w.get('tags')]
+    print(f'tags: {len(todo)} works without tags', flush=True)
+    vocab = sorted(set(SUBJECTS.values()) | {b for w in works for b in [w.get('b')] if b} |
+                   {'ראש השנה', 'יום כיפור', 'סוכות', 'חנוכה', 'ט"ו בשבט', 'פורים', 'פסח', 'ל"ג בעומר', 'שבועות', 'שבת'})
+    done = 0
+    for i in range(0, min(len(todo), TAG_BATCH * TAG_CALLS), TAG_BATCH):
+        if time.time() > DEADLINE:
+            break
+        batch = todo[i:i + TAG_BATCH]
+        lines = '\n'.join(f"{w['id']} | {SUBJECTS.get(w.get('s'), w.get('s', ''))} | {w.get('b', '')} | {w.get('p', '')} | "
+                          f"{short(w.get('title'), 80)} | {short(w.get('desc'), 200)}" for w in batch)
+        prompt = ('לפניך עבודות מחברת מגלריה של בית ספר (מזהה | מקצוע | נושא | פרק | כותרת | תיאור).\n'
+                  'לכל עבודה החזר 0–3 תגיות של מקצועות או נושאים נוספים שהיא שייכת אליהם באמת, מעבר למקצוע ולנושא שלה. '
+                  'למשל עבודת חשבון על חנוכייה: ["חנוכה", "מועדים"]; ציור של שבעת המינים בשפה: ["ארץ ישראל", "ט\\"ו בשבט"]. '
+                  'רק אם זה ברור מהכותרת או מהתיאור. ברוב העבודות הרשימה ריקה. לא לחזור על המקצוע או על הנושא של העבודה עצמה. '
+                  'עדיף מילים מהרשימה הזו: ' + ', '.join(vocab[:300]) + '\n\n' + lines)
+        res = gemini([{'text': prompt}], TAG_SCHEMA)
+        got = {r.get('id'): r.get('tags') or [] for r in res if isinstance(r, dict)}
+        for w in batch:
+            own = {SUBJECTS.get(w.get('s')), w.get('b'), w.get('p')}
+            tags = []
+            for t in got.get(w['id'], []):
+                t = short(str(t).lstrip('#'), 24)
+                if t and t not in own and t not in tags:
+                    tags.append(t)
+            auto[w['id']] = tags[:4]
+        done += len(batch)
+        path.write_text(json.dumps(auto, ensure_ascii=False, indent=0), encoding='utf-8')
+    print(f'tags: looked at {done} works this run', flush=True)
+
+
 def apply_fixes(items):
     """Corrections to works already published, applied on every run (so they also survive later runs):
     stained glass filed under crafts moves to art, and fixes.json in this repo holds manual corrections,
@@ -455,6 +504,14 @@ def main():
         lst_path.write_text('[]', encoding='utf-8')
     save_log()
     print(json.dumps(counts))
+    # with what is left of the run (uploads always come first): hashtags for works that have none
+    if not _daily or not all(_cool.get(m, 0) == float('inf') for m in models()):
+        try:
+            backfill_tags(items)
+        except QuotaDone:
+            print('tags: free daily quota used up; continues in a later run', flush=True)
+        except Exception as e:
+            print('tags: failed this run:', str(e)[:200], flush=True)
 
 
 if __name__ == '__main__':
