@@ -357,7 +357,7 @@ def move(meta_path, folder, meta):
 TAG_BATCH, TAG_CALLS = 40, 8      # works per Gemini call, calls per run
 
 TAG_SCHEMA = {'type': 'ARRAY', 'items': {'type': 'OBJECT', 'properties': {
-    'id': {'type': 'STRING'}, 'tags': {'type': 'ARRAY', 'items': {'type': 'STRING'}}}, 'required': ['id', 'tags']}}
+    'n': {'type': 'INTEGER'}, 'tags': {'type': 'ARRAY', 'items': {'type': 'STRING'}}}, 'required': ['n', 'tags']}}
 
 
 def backfill_tags(uploads):
@@ -366,6 +366,8 @@ def backfill_tags(uploads):
     script writes; the site uses them unless someone set tags by hand (fixes.json)."""
     path = PUB / 'autotags.json'
     auto = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
+    if auto.get('_v') != 2:          # v1 (17/11) matched answers by id and lost them: start over
+        auto = {'_v': 2}
     works = []
     data = PUB / 'data.js'
     if data.exists():
@@ -381,24 +383,28 @@ def backfill_tags(uploads):
         if time.time() > DEADLINE:
             break
         batch = todo[i:i + TAG_BATCH]
-        lines = '\n'.join(f"{w['id']} | {SUBJECTS.get(w.get('s'), w.get('s', ''))} | {w.get('b', '')} | {w.get('p', '')} | "
-                          f"{short(w.get('title'), 80)} | {short(w.get('desc'), 200)}" for w in batch)
-        prompt = ('לפניך עבודות מחברת מגלריה של בית ספר (מזהה | מקצוע | נושא | פרק | כותרת | תיאור).\n'
-                  'לכל עבודה החזר 0–3 תגיות של מקצועות או נושאים נוספים שהיא שייכת אליהם באמת, מעבר למקצוע ולנושא שלה. '
+        lines = '\n'.join(f"{k + 1} | {SUBJECTS.get(w.get('s'), w.get('s', ''))} | {w.get('b', '')} | {w.get('p', '')} | "
+                          f"{short(w.get('title'), 80)} | {short(w.get('desc'), 200)}" for k, w in enumerate(batch))
+        prompt = ('לפניך עבודות מחברת מגלריה של בית ספר, ממוספרות (מספר | מקצוע | נושא | פרק | כותרת | תיאור).\n'
+                  f'החזר רשימה עם פריט לכל אחת מ-{len(batch)} העבודות: n = מספר העבודה, tags = '
+                  '0–3 תגיות של מקצועות או נושאים נוספים שהיא שייכת אליהם באמת, מעבר למקצוע ולנושא שלה. '
                   'למשל עבודת חשבון על חנוכייה: ["חנוכה", "מועדים"]; ציור של שבעת המינים בשפה: ["ארץ ישראל", "ט\\"ו בשבט"]. '
                   'רק אם זה ברור מהכותרת או מהתיאור. ברוב העבודות הרשימה ריקה. לא לחזור על המקצוע או על הנושא של העבודה עצמה. '
                   'עדיף מילים מהרשימה הזו: ' + ', '.join(vocab[:300]) + '\n\n' + lines)
         res = gemini([{'text': prompt}], TAG_SCHEMA)
-        got = {r.get('id'): r.get('tags') or [] for r in res if isinstance(r, dict)}
-        for w in batch:
+        got = {r.get('n'): r.get('tags') or [] for r in (res if isinstance(res, list) else []) if isinstance(r, dict)}
+        print(f'  answer for {len(got)} of {len(batch)} works, {sum(1 for v in got.values() if v)} with tags', flush=True)
+        for k, w in enumerate(batch):
+            if k + 1 not in got:          # not answered: try again in a later run
+                continue
             own = {SUBJECTS.get(w.get('s')), w.get('b'), w.get('p')}
             tags = []
-            for t in got.get(w['id'], []):
+            for t in got[k + 1]:
                 t = short(str(t).lstrip('#'), 24)
                 if t and t not in own and t not in tags:
                     tags.append(t)
             auto[w['id']] = tags[:4]
-        done += len(batch)
+        done += len(got)
         path.write_text(json.dumps(auto, ensure_ascii=False, indent=0), encoding='utf-8')
     print(f'tags: looked at {done} works this run', flush=True)
 
