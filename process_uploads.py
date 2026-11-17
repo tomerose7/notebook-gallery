@@ -355,6 +355,8 @@ def move(meta_path, folder, meta):
 
 
 TAG_BATCH, TAG_CALLS = 40, 8      # works per Gemini call, calls per run
+TAG_TOPICS = ['ראש השנה', 'יום כיפור', 'סוכות', 'חנוכה', 'ט"ו בשבט', 'פורים', 'פסח', 'ל"ג בעומר', 'שבועות', 'שבת',
+              'שבעת המינים', 'בעלי חיים', 'צמחים', 'מפות', 'מידות ומשקלות', 'בית המקדש', 'המשכן']
 
 TAG_SCHEMA = {'type': 'ARRAY', 'items': {'type': 'OBJECT', 'properties': {
     'n': {'type': 'INTEGER'}, 'tags': {'type': 'ARRAY', 'items': {'type': 'STRING'}}}, 'required': ['n', 'tags']}}
@@ -366,8 +368,8 @@ def backfill_tags(uploads):
     script writes; the site uses them unless someone set tags by hand (fixes.json)."""
     path = PUB / 'autotags.json'
     auto = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
-    if auto.get('_v') != 2:          # v1 (17/11) matched answers by id and lost them: start over
-        auto = {'_v': 2}
+    if auto.get('_v') != 3:          # v1 lost answers (matched by id); v2 let in odd tags (book names): start over
+        auto = {'_v': 3}
     works = []
     data = PUB / 'data.js'
     if data.exists():
@@ -376,8 +378,8 @@ def backfill_tags(uploads):
     works += [u for u in uploads if not u.get('hidden')]
     todo = [w for w in works if w.get('id') and w['id'] not in auto and not w.get('tags')]
     print(f'tags: {len(todo)} works without tags', flush=True)
-    vocab = sorted(set(SUBJECTS.values()) | {b for w in works for b in [w.get('b')] if b} |
-                   {'ראש השנה', 'יום כיפור', 'סוכות', 'חנוכה', 'ט"ו בשבט', 'פורים', 'פסח', 'ל"ג בעומר', 'שבועות', 'שבת'})
+    # only these tags: other subjects, the holidays, and a few clear cross-subject topics
+    vocab = [v for v in SUBJECTS.values() if v != 'עוד עבודות'] + TAG_TOPICS
     done = 0
     for i in range(0, min(len(todo), TAG_BATCH * TAG_CALLS), TAG_BATCH):
         if time.time() > DEADLINE:
@@ -389,8 +391,10 @@ def backfill_tags(uploads):
                   f'החזר רשימה עם פריט לכל אחת מ-{len(batch)} העבודות: n = מספר העבודה, tags = '
                   '0–3 תגיות של מקצועות או נושאים נוספים שהיא שייכת אליהם באמת, מעבר למקצוע ולנושא שלה. '
                   'למשל עבודת חשבון על חנוכייה: ["חנוכה", "מועדים"]; ציור של שבעת המינים בשפה: ["ארץ ישראל", "ט\\"ו בשבט"]. '
-                  'רק אם זה ברור מהכותרת או מהתיאור. ברוב העבודות הרשימה ריקה. לא לחזור על המקצוע או על הנושא של העבודה עצמה. '
-                  'עדיף מילים מהרשימה הזו: ' + ', '.join(vocab[:300]) + '\n\n' + lines)
+                  'רק אם הקשר ישיר וברור מהכותרת או מהתיאור (למשל פסוק על שבת: שבת; קורבנות יום הכיפורים: יום כיפור). '
+                  'לא לתייג לפי פרט שולי בציור (אותיות שכתובות בעבודה אינן "אותיות", מסע אינו "גיאוגרפיה" אלא אם יש מפה). '
+                  'ברוב העבודות הרשימה ריקה. לא לחזור על המקצוע של העבודה עצמה. '
+                  'מותר להשתמש רק במילים מהרשימה הזו, בדיוק כפי שהן: ' + ', '.join(vocab) + '\n\n' + lines)
         res = gemini([{'text': prompt}], TAG_SCHEMA)
         got = {r.get('n'): r.get('tags') or [] for r in (res if isinstance(res, list) else []) if isinstance(r, dict)}
         print(f'  answer for {len(got)} of {len(batch)} works, {sum(1 for v in got.values() if v)} with tags', flush=True)
@@ -401,9 +405,9 @@ def backfill_tags(uploads):
             tags = []
             for t in got[k + 1]:
                 t = short(str(t).lstrip('#'), 24)
-                if t and t not in own and t not in tags:
+                if t in vocab and t not in own and t not in tags:
                     tags.append(t)
-            auto[w['id']] = tags[:4]
+            auto[w['id']] = tags[:3]
         done += len(got)
         path.write_text(json.dumps(auto, ensure_ascii=False, indent=0), encoding='utf-8')
     print(f'tags: looked at {done} works this run', flush=True)
