@@ -356,7 +356,22 @@ def move(meta_path, folder, meta):
 
 TAG_BATCH, TAG_CALLS = 40, 8      # works per Gemini call, calls per run
 TAG_TOPICS = ['ראש השנה', 'יום כיפור', 'סוכות', 'חנוכה', 'ט"ו בשבט', 'פורים', 'פסח', 'ל"ג בעומר', 'שבועות', 'שבת',
-              'שבעת המינים', 'בעלי חיים', 'צמחים', 'מפות', 'מידות ומשקלות', 'בית המקדש', 'המשכן']
+              'שבעת המינים', 'מפות', 'מידות ומשקלות', 'בית המקדש', 'המשכן']
+# a suggested tag is kept only if the work's own text says so (one of these word stems appears in its title,
+# description, verse or topic): the model alone tagged by passing details (a tree -> plants)
+TAG_EVIDENCE = {
+    'ראש השנה': ['ראש השנה', 'שופר', 'תשרי'], 'יום כיפור': ['כיפור', 'כפור', 'הכפרים', 'שעיר לעזאזל'],
+    'סוכות': ['סוכ', 'ארבעת המינים', 'לולב', 'אתרוג'], 'חנוכה': ['חנוכ', 'מכבי'], 'ט"ו בשבט': ['בשבט'],
+    'פורים': ['פורים', 'מגילה', 'אסתר', 'מרדכי', 'המן'], 'פסח': ['פסח', 'מצה', 'מצות', 'הגדה'],
+    'ל"ג בעומר': ['בעומר', 'עומר'], 'שבועות': ['שבועות', 'מתן תורה', 'ביכורים', 'בכורים'],
+    'שבת': ['שבת', 'השביעי', 'וישבת'], 'שבעת המינים': ['שבעת המינים', 'חטה', 'חיטה', 'שעורה', 'גפן', 'תאנה', 'רמון', 'רימון', 'זית', 'תמר'],
+    'מפות': ['מפה', 'מפת'], 'מידות ומשקלות': ['משקל', 'אמה', 'אמות', 'מידה', 'מידות', 'שקל'],
+    'בית המקדש': ['מקדש', 'היכל'], 'המשכן': ['משכן', 'מנורה', 'ארון', 'כרובים', 'מזבח', 'פרוכת'],
+    'מועדים': ['חג', 'מועד', 'חנוכ', 'פורים', 'פסח', 'שבועות', 'סוכ', 'ראש השנה', 'כיפור', 'בשבט'],
+    'ארץ ישראל': ['ארץ ישראל', 'כנען', 'ירושלים', 'חברון', 'הירדן', 'נחלה', 'נחלת'],
+    'גיאוגרפיה': ['מפה', 'מפת'], 'חשבון': ['מספר', 'חשבון', 'ספירה'], 'הנדסה': ['צורה', 'משולש', 'עיגול', 'מעגל', 'ריבוע'],
+    'מדעים': ['גוף', 'טבע'], 'נביא': ['נביא'], 'משנה': ['משנה', 'מסכת'],
+}
 
 TAG_SCHEMA = {'type': 'ARRAY', 'items': {'type': 'OBJECT', 'properties': {
     'n': {'type': 'INTEGER'}, 'tags': {'type': 'ARRAY', 'items': {'type': 'STRING'}}}, 'required': ['n', 'tags']}}
@@ -368,8 +383,8 @@ def backfill_tags(uploads):
     script writes; the site uses them unless someone set tags by hand (fixes.json)."""
     path = PUB / 'autotags.json'
     auto = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
-    if auto.get('_v') != 3:          # v1 lost answers (matched by id); v2 let in odd tags (book names): start over
-        auto = {'_v': 3}
+    if auto.get('_v') != 4:          # v1 lost answers; v2 odd tags; v3 tags by passing details: start over
+        auto = {'_v': 4}
     works = []
     data = PUB / 'data.js'
     if data.exists():
@@ -379,7 +394,7 @@ def backfill_tags(uploads):
     todo = [w for w in works if w.get('id') and w['id'] not in auto and not w.get('tags')]
     print(f'tags: {len(todo)} works without tags', flush=True)
     # only these tags: other subjects, the holidays, and a few clear cross-subject topics
-    vocab = [v for v in SUBJECTS.values() if v != 'עוד עבודות'] + TAG_TOPICS
+    vocab = [v for v in SUBJECTS.values() if v in TAG_EVIDENCE] + TAG_TOPICS
     done = 0
     for i in range(0, min(len(todo), TAG_BATCH * TAG_CALLS), TAG_BATCH):
         if time.time() > DEADLINE:
@@ -402,10 +417,11 @@ def backfill_tags(uploads):
             if k + 1 not in got:          # not answered: try again in a later run
                 continue
             own = {SUBJECTS.get(w.get('s')), w.get('b'), w.get('p')}
+            said = ' '.join(str(w.get(f) or '') for f in ('title', 'desc', 'ref', 'b', 'p'))
             tags = []
             for t in got[k + 1]:
                 t = short(str(t).lstrip('#'), 24)
-                if t in vocab and t not in own and t not in tags:
+                if t in vocab and t not in own and t not in tags and any(e in said for e in TAG_EVIDENCE.get(t, [])):
                     tags.append(t)
             auto[w['id']] = tags[:3]
         done += len(got)
