@@ -403,11 +403,15 @@ function render(){
 let deferredPrompt = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; if (parse().view==='home' && !$('#q').value) render(); });
 addEventListener('appinstalled', () => { deferredPrompt = null; render(); });
 function installBox(){
   if (standalone) return '';
-  const howto = isIOS ? 'בספארי: לוחצים על כפתור השיתוף (ריבוע עם חץ למעלה), ואז "הוספה למסך הבית".'
+  // Samsung Internet packages the site as an old-style app that Google Play Protect blocks ("unsafe app"):
+  // send those visitors to Chrome, whose install is accepted, and offer no install button here
+  if (isSamsung) return `<div class="install"><img src="icon-192.png" alt=""><div><b>להוריד כאפליקציה לטלפון</b><span>בדפדפן של סמסונג ההתקנה נחסמת. פתחו את האתר בכרום (Chrome), ושם: תפריט שלוש הנקודות, ואז "התקנת אפליקציה" או "הוספה למסך הבית".</span></div></div>`;
+  const howto = isIOS ?'בספארי: לוחצים על כפתור השיתוף (ריבוע עם חץ למעלה), ואז "הוספה למסך הבית".'
     : deferredPrompt ? 'לחיצה אחת, והגלריה תופיע במסך הבית כמו כל אפליקציה.'
     : 'בכרום בטלפון: תפריט שלוש הנקודות, ואז "התקנת אפליקציה" או "הוספה למסך הבית".';
   return `<div class="install"><img src="icon-192.png" alt=""><div><b>להוריד כאפליקציה לטלפון</b><span>${howto}</span></div>${deferredPrompt?'<button class="btn" type="button" id="inst">התקנה</button>':''}</div>`;
